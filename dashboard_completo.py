@@ -47,7 +47,7 @@ st.markdown("""
         box-shadow: 0 4px 16px rgba(15,23,42,0.12);
         transform: translateY(-2px);
     }
-    [data-testid="stMetricValue"]  { color: #6366f1 !important; font-size: 1.7rem !important; font-weight: 700 !important; }
+    [data-testid="stMetricValue"]  { color: #6366f1 !important; font-size: 1.1rem !important; font-weight: 700 !important; }
     [data-testid="stMetricLabel"]  { color: #64748b !important; font-size: 0.82rem !important; font-weight: 500 !important; text-transform: uppercase; letter-spacing: 0.05em; }
     [data-testid="stMetricDelta"]  { font-size: 0.85rem !important; }
 
