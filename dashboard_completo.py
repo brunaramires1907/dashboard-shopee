@@ -568,13 +568,16 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     for col in ["total_vendas", "vendas_diretas", "vendas_indiretas", "qtd_itens", "cliques_anuncio", "cliques_shopee"]:
         df_display[col] = df_display[col].astype(int)
 
+    # Aplica estilo ANTES de renomear (usa nomes internos "lucro" e "roi")
+    df_styled = df_display.style.apply(estilo_linha, axis=1)
+
     df_display.columns = [
         "SubID", "Comissão", "Faturamento", "Gasto", "Lucro", "ROI",
         "Total Vendas", "Diretas", "Indiretas", "Qtd Itens",
         "Cliques Anúncio", "Cliques Shopee", "% Batimento"
     ]
 
-    st.dataframe(df_display.style.apply(estilo_linha, axis=1), use_container_width=True)
+    st.dataframe(df_display, use_container_width=True, hide_index=True)
 
     # Alertas
     if not df[df["lucro"] < 0].empty:
