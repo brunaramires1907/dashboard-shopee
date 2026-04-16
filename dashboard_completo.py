@@ -170,15 +170,17 @@ def converter_valor(valor):
 
 def ler_csv_inteligente(file):
     file.seek(0)
-    try:
-        df = pd.read_csv(file, sep=";", encoding="latin-1", engine="python")
-        if len(df.columns) <= 1:
-            file.seek(0)
-            df = pd.read_csv(file, sep=",", encoding="latin-1", engine="python")
-        return df
-    except:
-        file.seek(0)
-        return pd.read_csv(file, sep=",", encoding="latin-1", engine="python")
+    for enc in ["utf-8-sig", "utf-8", "latin-1"]:
+        for sep in [",", ";"]:
+            try:
+                file.seek(0)
+                df = pd.read_csv(file, sep=sep, encoding=enc, engine="python")
+                if len(df.columns) > 1:
+                    return df
+            except:
+                continue
+    file.seek(0)
+    return pd.read_csv(file, sep=",", encoding="latin-1", engine="python")
 
 def ler_excel(file):
     file.seek(0)
@@ -194,17 +196,20 @@ def gerar_excel(df):
 def estilo_linha(row):
     estilos = []
     for col in row.index:
-        if col == "lucro":
+        if col in ("lucro", "Lucro"):
             v = converter_valor(row[col])
-            estilos.append("color: #4ade80; font-weight:bold;" if v > 0 else "color: #f87171; font-weight:bold;")
-        elif col == "roi":
-            v = float(str(row[col]).replace("%", "")) / 100
+            estilos.append("color: #16a34a; font-weight:bold;" if v > 0 else "color: #dc2626; font-weight:bold;")
+        elif col in ("roi", "ROI"):
+            try:
+                v = float(str(row[col]).replace("%", "").replace(",", ".")) / 100
+            except:
+                v = 0
             if v >= roi_minimo:
-                estilos.append("color: #4ade80; font-weight:bold;")
+                estilos.append("color: #16a34a; font-weight:bold;")
             elif v >= roi_minimo * 0.8:
-                estilos.append("color: #fbbf24; font-weight:bold;")
+                estilos.append("color: #d97706; font-weight:bold;")
             else:
-                estilos.append("color: #f87171; font-weight:bold;")
+                estilos.append("color: #dc2626; font-weight:bold;")
         else:
             estilos.append("")
     return estilos
@@ -213,10 +218,11 @@ def estilo_linha(row):
 # PROCESSAMENTO
 # =========================
 ads              = pd.DataFrame(columns=["subid", "gasto", "cliques_anuncio"])
-vendas           = pd.DataFrame(columns=["subid", "comissoes"])
+vendas           = pd.DataFrame(columns=["subid", "comissoes", "faturamento", "vendas_diretas", "vendas_indiretas", "qtd_itens"])
 cliques_shopee   = pd.DataFrame(columns=["subid", "cliques_shopee"])
 faturamento_bruto_total = 0.0
 erros_carregamento = []
+df_shopee_raw    = pd.DataFrame()  # dados brutos para análise por dia
 
 # --- ADS ---
 lista_ads = []
@@ -259,17 +265,24 @@ if lista_ads:
 
 # --- SHOPEE COMISSÕES ---
 lista_vendas = []
+lista_shopee_raw = []
+
 if shopee_comissao_files:
     for f in shopee_comissao_files:
         try:
             shp = ler_csv_inteligente(f)
             shp.columns = [normalizar_coluna(c) for c in shp.columns]
 
-            col_valor  = next((c for c in shp.columns if "valor_de_compra" in c), None)
-            col_status = next((c for c in shp.columns if "status_do_pedido" in c), None)
-            col_notas  = next((c for c in shp.columns if "notas" in c or "status_do_item" in c), None)
-            col_comis  = next((c for c in shp.columns if "comissao_liquida" in c or "comissao_total" in c), shp.columns[-1])
-            col_sub    = next((c for c in shp.columns if "sub_id1" in c), None)
+            col_valor     = next((c for c in shp.columns if "valor_de_compra" in c), None)
+            col_status    = next((c for c in shp.columns if "status_do_pedido" in c), None)
+            col_notas     = next((c for c in shp.columns if "notas" in c or "status_do_item" in c), None)
+            col_comis     = next((c for c in shp.columns if "comissao_liquida" in c), None) or \
+                            next((c for c in shp.columns if "comissao_total_do_item" in c), None) or \
+                            next((c for c in shp.columns if "comissao_total" in c), shp.columns[-1])
+            col_sub       = next((c for c in shp.columns if "sub_id1" in c), None)
+            col_atrib     = next((c for c in shp.columns if "tipo_de_atribuicao" in c or "atribuicao" in c), None)
+            col_data      = next((c for c in shp.columns if "horario_do_pedido" in c or "data_do_pedido" in c), None)
+            col_qtd       = next((c for c in shp.columns if "qtd" in c), None)
 
             if not col_valor:
                 erros_carregamento.append(f"Shopee '{f.name}': coluna 'valor_de_compra' não encontrada.")
@@ -285,17 +298,51 @@ if shopee_comissao_files:
             )
 
             shp_valido = shp[mask_validas].copy()
-            faturamento_bruto_total += shp_valido[col_valor].apply(converter_valor).sum()
+            shp_valido["_valor"]    = shp_valido[col_valor].apply(converter_valor)
+            shp_valido["_comissao"] = shp_valido[col_comis].apply(converter_valor)
+            shp_valido["_qtd"]      = pd.to_numeric(shp_valido[col_qtd], errors="coerce").fillna(1) if col_qtd else 1
+            faturamento_bruto_total += shp_valido["_valor"].sum()
 
             if col_sub:
-                shp_valido["subid"]     = shp_valido[col_sub].apply(limpar_subid)
-                shp_valido["comissoes"] = shp_valido[col_comis].apply(converter_valor)
-                lista_vendas.append(shp_valido[["subid", "comissoes"]])
+                shp_valido["subid"] = shp_valido[col_sub].apply(limpar_subid)
+
+                # Tipo de venda: direta (mesma loja) ou indireta (loja diferente)
+                if col_atrib:
+                    atrib_limpo = shp_valido[col_atrib].apply(normalizar_texto)
+                    shp_valido["_direta"]   = atrib_limpo.str.contains("mesma", na=False).astype(int)
+                    shp_valido["_indireta"] = atrib_limpo.str.contains("diferente", na=False).astype(int)
+                else:
+                    shp_valido["_direta"]   = 0
+                    shp_valido["_indireta"] = 1
+
+                # Data do pedido para análise diária
+                if col_data:
+                    shp_valido["_data"] = pd.to_datetime(shp_valido[col_data], errors="coerce").dt.date
+                else:
+                    shp_valido["_data"] = date.today()
+
+                lista_shopee_raw.append(shp_valido[["subid", "_valor", "_comissao", "_qtd", "_direta", "_indireta", "_data"]])
+
+                agg = shp_valido.groupby("subid", as_index=False).agg(
+                    comissoes=("_comissao", "sum"),
+                    faturamento=("_valor", "sum"),
+                    vendas_diretas=("_direta", "sum"),
+                    vendas_indiretas=("_indireta", "sum"),
+                    qtd_itens=("_qtd", "sum")
+                )
+                lista_vendas.append(agg)
+
         except Exception as e:
             erros_carregamento.append(f"Shopee Comissões '{f.name}': {e}")
 
 if lista_vendas:
-    vendas = pd.concat(lista_vendas).groupby("subid", as_index=False).sum()
+    vendas = pd.concat(lista_vendas).groupby("subid", as_index=False).agg({
+        "comissoes": "sum", "faturamento": "sum",
+        "vendas_diretas": "sum", "vendas_indiretas": "sum", "qtd_itens": "sum"
+    })
+
+if lista_shopee_raw:
+    df_shopee_raw = pd.concat(lista_shopee_raw, ignore_index=True)
 
 # --- SHOPEE CLIQUES ---
 lista_cliques = []
@@ -328,6 +375,16 @@ df["roi"]   = df.apply(lambda x: x["lucro"] / x["gasto"] if x["gasto"] > 0 else 
 df["%_batimento_cliques"] = df.apply(
     lambda x: (x["cliques_shopee"] / x["cliques_anuncio"] * 100) if x["cliques_anuncio"] > 0 else 0, axis=1
 )
+df["total_vendas"] = df["vendas_diretas"] + df["vendas_indiretas"]
+
+# Ordem das colunas conforme solicitado
+colunas_ordem = ["subid", "comissoes", "faturamento", "gasto", "lucro", "roi",
+                 "total_vendas", "vendas_diretas", "vendas_indiretas", "qtd_itens",
+                 "cliques_anuncio", "cliques_shopee", "%_batimento_cliques"]
+for c in colunas_ordem:
+    if c not in df.columns:
+        df[c] = 0
+df = df[colunas_ordem]
 
 total_gasto    = df["gasto"].sum()
 total_comissao = df["comissoes"].sum()
@@ -348,12 +405,14 @@ if erros_carregamento:
 if not df.empty and (total_gasto > 0 or total_comissao > 0):
     st.success("✅ Análise gerada com sucesso!")
 
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("💰 Comissão",   f"R$ {total_comissao:,.2f}")
-    c2.metric("📉 Gasto",      f"R$ {total_gasto:,.2f}")
-    c3.metric("📈 Lucro",      f"R$ {total_lucro:,.2f}", delta=f"{'▲' if total_lucro >= 0 else '▼'} {abs(total_lucro):,.2f}")
-    c4.metric("🚀 ROI Geral",  f"{total_roi:.2%}")
-    c5.metric("🧾 Fat. Bruto", f"R$ {faturamento_bruto_total:,.2f}")
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    c1.metric("💰 Comissão",    f"R$ {total_comissao:,.2f}")
+    c2.metric("🧾 Fat. Bruto",  f"R$ {faturamento_bruto_total:,.2f}")
+    c3.metric("📉 Gasto",       f"R$ {total_gasto:,.2f}")
+    c4.metric("📈 Lucro",       f"R$ {total_lucro:,.2f}", delta=f"{'▲' if total_lucro >= 0 else '▼'} {abs(total_lucro):,.2f}")
+    c5.metric("🚀 ROI Geral",   f"{total_roi:.2%}")
+    total_vendas_geral = int(df["total_vendas"].sum())
+    c6.metric("🛒 Vendas",      f"{total_vendas_geral}", delta=f"{int(df['vendas_diretas'].sum())}D / {int(df['vendas_indiretas'].sum())}I")
 
     # Progresso da Meta
     st.write(f"**Progresso da Meta Mensal (R$ {meta_mensal:,.2f})**")
@@ -368,7 +427,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     # =========================
     st.subheader("📈 Análise Visual")
 
-    tab1, tab2, tab3 = st.tabs(["ROI por Campanha", "Lucro vs Gasto", "Funil de Cliques"])
+    tab1, tab2, tab3, tab4 = st.tabs(["ROI por Campanha", "Lucro vs Gasto", "Funil de Cliques", "📅 Faturamento por Dia"])
 
     with tab1:
         df_sorted = df[df["subid"] != ""].sort_values("roi", ascending=False).head(20)
@@ -428,6 +487,51 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         else:
             st.info("Carregue os arquivos de cliques da Shopee para ver o funil.")
 
+    with tab4:
+        if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
+            # Filtro por SubID
+            subids_disponiveis = ["Todos"] + sorted(df_shopee_raw["subid"].dropna().unique().tolist())
+            subid_sel = st.selectbox("Filtrar por SubID:", subids_disponiveis, key="fat_dia_subid")
+
+            raw_filtrado = df_shopee_raw if subid_sel == "Todos" else df_shopee_raw[df_shopee_raw["subid"] == subid_sel]
+
+            fat_dia = raw_filtrado.groupby("_data", as_index=False).agg(
+                faturamento=("_valor", "sum"),
+                comissao=("_comissao", "sum"),
+                vendas=("_qtd", "sum"),
+                diretas=("_direta", "sum"),
+                indiretas=("_indireta", "sum")
+            ).sort_values("_data")
+
+            fig_dia = go.Figure()
+            fig_dia.add_trace(go.Bar(
+                x=fat_dia["_data"].astype(str), y=fat_dia["faturamento"],
+                name="Faturamento", marker_color="#6366f1"
+            ))
+            fig_dia.add_trace(go.Bar(
+                x=fat_dia["_data"].astype(str), y=fat_dia["comissao"],
+                name="Comissão", marker_color="#8b5cf6"
+            ))
+            fig_dia.update_layout(
+                barmode="group", title="Faturamento e Comissão por Dia",
+                paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
+                font_color="#1e293b", font_family="Inter",
+                xaxis_title="Data", yaxis_title="R$"
+            )
+            st.plotly_chart(fig_dia, use_container_width=True)
+
+            # Tabela diária
+            fat_dia_display = fat_dia.copy()
+            fat_dia_display["faturamento"] = fat_dia_display["faturamento"].apply(lambda x: f"R$ {x:,.2f}")
+            fat_dia_display["comissao"]    = fat_dia_display["comissao"].apply(lambda x: f"R$ {x:,.2f}")
+            fat_dia_display["vendas"]      = fat_dia_display["vendas"].astype(int)
+            fat_dia_display["diretas"]     = fat_dia_display["diretas"].astype(int)
+            fat_dia_display["indiretas"]   = fat_dia_display["indiretas"].astype(int)
+            fat_dia_display.columns        = ["Data", "Faturamento", "Comissão", "Qtd Vendas", "Diretas", "Indiretas"]
+            st.dataframe(fat_dia_display, use_container_width=True, hide_index=True)
+        else:
+            st.info("Carregue os arquivos de comissão da Shopee para ver o faturamento por dia.")
+
     st.divider()
 
     # =========================
@@ -437,7 +541,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
 
     col_ord, col_filt = st.columns([2, 1])
     with col_ord:
-        ordenar_por = st.selectbox("Ordenar por:", ["roi", "lucro", "comissoes", "gasto", "%_batimento_cliques"])
+        ordenar_por = st.selectbox("Ordenar por:", ["roi", "lucro", "faturamento", "comissoes", "gasto", "total_vendas", "%_batimento_cliques"])
     with col_filt:
         mostrar_apenas_prejuizo = st.checkbox("Mostrar apenas prejuízo")
 
@@ -447,10 +551,18 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     df_tabela = df_tabela.sort_values(ordenar_por, ascending=False)
 
     df_display = df_tabela.copy()
-    for col in ["comissoes", "gasto", "lucro"]:
+    for col in ["comissoes", "faturamento", "gasto", "lucro"]:
         df_display[col] = df_display[col].apply(lambda x: f"R$ {x:,.2f}")
-    df_display["roi"]                  = df_display["roi"].apply(lambda x: f"{x:.2%}")
-    df_display["%_batimento_cliques"]  = df_display["%_batimento_cliques"].apply(lambda x: f"{x:.2f}%")
+    df_display["roi"]                 = df_display["roi"].apply(lambda x: f"{x:.2%}")
+    df_display["%_batimento_cliques"] = df_display["%_batimento_cliques"].apply(lambda x: f"{x:.2f}%")
+    for col in ["total_vendas", "vendas_diretas", "vendas_indiretas", "qtd_itens", "cliques_anuncio", "cliques_shopee"]:
+        df_display[col] = df_display[col].astype(int)
+
+    df_display.columns = [
+        "SubID", "Comissão", "Faturamento", "Gasto", "Lucro", "ROI",
+        "Total Vendas", "Diretas", "Indiretas", "Qtd Itens",
+        "Cliques Anúncio", "Cliques Shopee", "% Batimento"
+    ]
 
     st.dataframe(df_display.style.apply(estilo_linha, axis=1), use_container_width=True)
 
@@ -500,13 +612,14 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         - Lucro líquido: R$ {total_lucro:,.2f}
         - ROI geral: {total_roi:.2%}
         - Meta mensal: R$ {meta_mensal:,.2f} ({percentual_meta*100:.1f}% atingida)
+        - Total de vendas: {int(df['total_vendas'].sum())} ({int(df['vendas_diretas'].sum())} diretas / {int(df['vendas_indiretas'].sum())} indiretas)
         - Campanhas lucrativas: {campanhas_lucro}
         - Campanhas em prejuízo: {campanhas_prejuizo}
         - Melhor campanha: {melhor['subid']} com ROI {melhor['roi']:.2%}
         - Pior campanha: {pior['subid']} com lucro R$ {pior['lucro']:,.2f}
         - Batimento médio de cliques: {batimento_avg:.1f}%
         Top 5 por ROI:
-        {df.nlargest(5, 'roi')[['subid','gasto','comissoes','lucro','roi']].to_string(index=False)}
+        {df.nlargest(5, 'roi')[['subid','gasto','comissoes','faturamento','lucro','roi','total_vendas']].to_string(index=False)}
         """
 
         if st.button("🔍 Gerar análise detalhada com IA"):
