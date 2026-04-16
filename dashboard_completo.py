@@ -15,46 +15,105 @@ st.set_page_config(page_title="Dashboard Shopee + Ads", layout="wide", page_icon
 
 st.markdown("""
     <style>
-    /* Fundo escuro geral */
-    .stApp { background-color: #0f172a; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-    /* Cards de Métrica */
-    div[data-testid="metric-container"] {
-        background-color: #1e293b;
-        border: 1px solid #334155;
-        padding: 18px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        transition: transform 0.2s;
+    /* Reset geral — fundo branco limpo */
+    html, body, .stApp {
+        background-color: #f8fafc !important;
+        font-family: 'Inter', sans-serif !important;
+        color: #1e293b !important;
     }
-    div[data-testid="metric-container"]:hover { transform: translateY(-2px); }
 
-    [data-testid="stMetricValue"]  { color: #38bdf8 !important; font-size: 1.6rem !important; }
-    [data-testid="stMetricLabel"]  { color: #94a3b8 !important; }
+    /* Sidebar branca com borda suave */
+    [data-testid="stSidebar"] {
+        background-color: #ffffff !important;
+        border-right: 1px solid #e2e8f0 !important;
+    }
+    [data-testid="stSidebar"] * { color: #334155 !important; }
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3 { color: #0f172a !important; font-weight: 600 !important; }
+
+    /* Cards de Métrica — estilo SaaS moderno */
+    div[data-testid="metric-container"] {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        padding: 20px 24px;
+        border-radius: 14px;
+        box-shadow: 0 1px 4px rgba(15,23,42,0.07);
+        transition: box-shadow 0.2s, transform 0.2s;
+    }
+    div[data-testid="metric-container"]:hover {
+        box-shadow: 0 4px 16px rgba(15,23,42,0.12);
+        transform: translateY(-2px);
+    }
+    [data-testid="stMetricValue"]  { color: #6366f1 !important; font-size: 1.7rem !important; font-weight: 700 !important; }
+    [data-testid="stMetricLabel"]  { color: #64748b !important; font-size: 0.82rem !important; font-weight: 500 !important; text-transform: uppercase; letter-spacing: 0.05em; }
     [data-testid="stMetricDelta"]  { font-size: 0.85rem !important; }
 
-    /* Tabelas */
-    .stDataFrame { border: 1px solid #334155; border-radius: 12px; overflow: hidden; }
-
-    /* Sidebar */
-    [data-testid="stSidebar"] { background-color: #1e293b; }
-
     /* Títulos */
-    h1, h2, h3 { color: #f1f5f9 !important; }
+    h1 { color: #0f172a !important; font-size: 1.8rem !important; font-weight: 700 !important; }
+    h2, h3 { color: #1e293b !important; font-weight: 600 !important; }
+
+    /* Tabelas */
+    .stDataFrame {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        background: white !important;
+    }
+
+    /* Divider */
+    hr { border-color: #e2e8f0 !important; }
 
     /* Alertas */
-    .stAlert { border-radius: 10px; }
+    .stAlert { border-radius: 10px !important; }
 
-    /* Botão de download */
+    /* Botões de download */
     .stDownloadButton button {
-        background-color: #0284c7;
-        color: white;
-        border-radius: 8px;
-        border: none;
-        padding: 10px 20px;
-        font-weight: bold;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+        color: white !important;
+        border-radius: 9px !important;
+        border: none !important;
+        padding: 10px 22px !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        box-shadow: 0 2px 8px rgba(99,102,241,0.3) !important;
+        transition: opacity 0.2s !important;
     }
-    .stDownloadButton button:hover { background-color: #0369a1; }
+    .stDownloadButton button:hover { opacity: 0.88 !important; }
+
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        background: #f1f5f9 !important;
+        border-radius: 10px !important;
+        padding: 4px !important;
+        gap: 4px !important;
+    }
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 8px !important;
+        color: #64748b !important;
+        font-weight: 500 !important;
+    }
+    .stTabs [aria-selected="true"] {
+        background: #ffffff !important;
+        color: #6366f1 !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
+    }
+
+    /* Progress bar */
+    .stProgress > div > div {
+        background: linear-gradient(90deg, #6366f1, #8b5cf6) !important;
+        border-radius: 99px !important;
+    }
+
+    /* Inputs e selects */
+    .stSelectbox > div, .stNumberInput > div {
+        border-radius: 8px !important;
+    }
+
+    /* Caption / subtexto */
+    .stCaption { color: #94a3b8 !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -324,8 +383,9 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         fig_roi.add_hline(y=roi_minimo, line_dash="dash", line_color="#38bdf8",
                           annotation_text=f"Meta ROI: {roi_minimo:.0%}", annotation_position="top right")
         fig_roi.update_layout(
-            paper_bgcolor="#1e293b", plot_bgcolor="#0f172a",
-            font_color="#f1f5f9", coloraxis_showscale=False
+            paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
+            font_color="#1e293b", coloraxis_showscale=False,
+            font_family="Inter"
         )
         fig_roi.update_yaxes(tickformat=".0%")
         st.plotly_chart(fig_roi, use_container_width=True)
@@ -345,7 +405,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         max_val = max(df_plot["gasto"].max(), df_plot["comissoes"].max()) * 1.1
         fig_lv.add_shape(type="line", x0=0, y0=0, x1=max_val, y1=max_val,
                          line=dict(color="#64748b", dash="dot"))
-        fig_lv.update_layout(paper_bgcolor="#1e293b", plot_bgcolor="#0f172a", font_color="#f1f5f9")
+        fig_lv.update_layout(paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc", font_color="#1e293b", font_family="Inter")
         st.plotly_chart(fig_lv, use_container_width=True)
 
     with tab3:
@@ -362,7 +422,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
             ))
             fig_funil.update_layout(
                 barmode="group", title="Funil de Cliques: Anúncio → Shopee (Top 10)",
-                paper_bgcolor="#1e293b", plot_bgcolor="#0f172a", font_color="#f1f5f9"
+                paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc", font_color="#1e293b", font_family="Inter"
             )
             st.plotly_chart(fig_funil, use_container_width=True)
         else:
@@ -528,8 +588,8 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
             ))
             fig_hist.update_layout(
                 title="Evolução Diária — Faturamento / Lucro / Gasto",
-                paper_bgcolor="#1e293b", plot_bgcolor="#0f172a",
-                font_color="#f1f5f9", xaxis_title="Data", yaxis_title="R$"
+                paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
+                font_color="#1e293b", font_family="Inter", xaxis_title="Data", yaxis_title="R$"
             )
             st.plotly_chart(fig_hist, use_container_width=True)
 
