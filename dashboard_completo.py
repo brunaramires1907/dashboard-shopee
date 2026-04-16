@@ -193,7 +193,14 @@ def gerar_excel(df):
     output.seek(0)
     return output
 
-def estilo_linha(row):
+def formatar_valor(v):
+    """Formata valor monetário de forma compacta para caber nos cards"""
+    if v >= 1_000_000:
+        return f"R${v/1_000_000:.2f}M"
+    elif v >= 1_000:
+        return f"R${v/1_000:.1f}K"
+    else:
+        return f"R${v:,.2f}"
     estilos = []
     for col in row.index:
         if col in ("lucro", "Lucro"):
@@ -406,10 +413,10 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     st.success("✅ Análise gerada com sucesso!")
 
     c1, c2, c3, c4, c5, c6 = st.columns(6)
-    c1.metric("💰 Comissão",    f"R$ {total_comissao:,.2f}")
-    c2.metric("🧾 Fat. Bruto",  f"R$ {faturamento_bruto_total:,.2f}")
-    c3.metric("📉 Gasto",       f"R$ {total_gasto:,.2f}")
-    c4.metric("📈 Lucro",       f"R$ {total_lucro:,.2f}", delta=f"{'▲' if total_lucro >= 0 else '▼'} {abs(total_lucro):,.2f}")
+    c1.metric("💰 Comissão",    formatar_valor(total_comissao))
+    c2.metric("🧾 Fat. Bruto",  formatar_valor(faturamento_bruto_total))
+    c3.metric("📉 Gasto",       formatar_valor(total_gasto))
+    c4.metric("📈 Lucro",       formatar_valor(total_lucro), delta=f"{'▲' if total_lucro >= 0 else '▼'} {formatar_valor(abs(total_lucro))}")
     c5.metric("🚀 ROI Geral",   f"{total_roi:.2%}")
     total_vendas_geral = int(df["total_vendas"].sum())
     c6.metric("🛒 Vendas",      f"{total_vendas_geral}", delta=f"{int(df['vendas_diretas'].sum())}D / {int(df['vendas_indiretas'].sum())}I")
@@ -548,6 +555,9 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     df_tabela = df.copy()
     if mostrar_apenas_prejuizo:
         df_tabela = df_tabela[df_tabela["lucro"] < 0]
+        total_prejuizo = df_tabela["lucro"].sum()
+        qtd_prejuizo   = len(df_tabela)
+        st.error(f"🚨 **{qtd_prejuizo} campanha(s) em prejuízo** — Prejuízo total: **R$ {abs(total_prejuizo):,.2f}**")
     df_tabela = df_tabela.sort_values(ordenar_por, ascending=False)
 
     df_display = df_tabela.copy()
