@@ -194,13 +194,7 @@ def gerar_excel(df):
     return output
 
 def formatar_valor(v):
-    """Formata valor monetário de forma compacta para caber nos cards"""
-    if v >= 1_000_000:
-        return f"R${v/1_000_000:.2f}M"
-    elif v >= 1_000:
-        return f"R${v/1_000:.1f}K"
-    else:
-        return f"R${v:,.2f}"
+    return f"R$ {v:,.2f}"
     estilos = []
     for col in row.index:
         if col in ("lucro", "Lucro"):
