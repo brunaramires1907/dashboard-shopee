@@ -560,6 +560,24 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         st.error(f"🚨 **{qtd_prejuizo} campanha(s) em prejuízo** — Prejuízo total: **R$ {abs(total_prejuizo):,.2f}**")
     df_tabela = df_tabela.sort_values(ordenar_por, ascending=False)
 
+    # Cria cópia com valores numéricos para colorização
+    df_color = df_tabela.copy()
+
+    def colorir_lucro(val):
+        try:
+            v = float(str(val).replace("R$","").replace(",","").strip())
+            return "color: #16a34a; font-weight:bold;" if v > 0 else "color: #dc2626; font-weight:bold;"
+        except: return ""
+
+    def colorir_roi(val):
+        try:
+            v = float(str(val).replace("%","").replace(",",".").strip()) / 100
+            if v >= roi_minimo:   return "color: #16a34a; font-weight:bold;"
+            elif v >= 0:          return "color: #d97706; font-weight:bold;"
+            else:                 return "color: #dc2626; font-weight:bold;"
+        except: return ""
+
+    # Formata para exibição
     df_display = df_tabela.copy()
     for col in ["comissoes", "faturamento", "gasto", "lucro"]:
         df_display[col] = df_display[col].apply(lambda x: f"R$ {x:,.2f}")
@@ -574,11 +592,13 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         "Cliques Anúncio", "Cliques Shopee", "% Batimento"
     ]
 
-    st.dataframe(df_display, use_container_width=True, hide_index=True)
-
-    # Alertas
-    if not df[df["lucro"] < 0].empty:
-        st.error(f"🚨 {len(df[df['lucro'] < 0])} campanha(s) em prejuízo! Revise os criativos.")
+    st.dataframe(
+        df_display.style
+            .applymap(colorir_lucro, subset=["Lucro"])
+            .applymap(colorir_roi,   subset=["ROI"]),
+        use_container_width=True,
+        hide_index=True
+    )
 
     st.divider()
 
