@@ -451,25 +451,31 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
 
     with tab2:
         df_plot = df[df["subid"] != ""].copy()
-        if df_plot["gasto"].sum() == 0 and df_plot["comissoes"].sum() == 0:
-            st.info("📊 Carregue arquivos de anúncios (Pinterest ou Meta) junto com a Shopee para ver este gráfico.")
+        if df_plot["comissoes"].sum() == 0:
+            st.info("📊 Importe a planilha de comissões da Shopee para ver este gráfico.")
         else:
-            # Garante que size seja sempre > 0
-            df_plot["_size"] = df_plot["lucro"].clip(lower=0) + 1
-            fig_lv = px.scatter(
-                df_plot,
-                x="gasto", y="comissoes",
-                size="_size",
-                color="lucro",
-                color_continuous_scale=["#f87171", "#4ade80"],
-                hover_name="subid",
-                labels={"gasto": "Gasto (R$)", "comissoes": "Comissão (R$)", "lucro": "Lucro"},
-                title="Comissão vs Gasto por SubID"
-            )
+            fig_lv = go.Figure()
+            for _, row in df_plot.iterrows():
+                cor = "#16a34a" if row["lucro"] >= 0 else "#dc2626"
+                fig_lv.add_trace(go.Scatter(
+                    x=[row["gasto"]], y=[row["comissoes"]],
+                    mode="markers+text",
+                    text=[row["subid"]],
+                    textposition="top center",
+                    marker=dict(size=12, color=cor),
+                    name=row["subid"],
+                    showlegend=False,
+                    hovertemplate=f"<b>{row['subid']}</b><br>Gasto: R$ {row['gasto']:,.2f}<br>Comissão: R$ {row['comissoes']:,.2f}<br>Lucro: R$ {row['lucro']:,.2f}<extra></extra>"
+                ))
             max_val = max(df_plot["gasto"].max(), df_plot["comissoes"].max(), 1) * 1.1
             fig_lv.add_shape(type="line", x0=0, y0=0, x1=max_val, y1=max_val,
-                             line=dict(color="#64748b", dash="dot"))
-            fig_lv.update_layout(paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc", font_color="#1e293b", font_family="Inter")
+                             line=dict(color="#94a3b8", dash="dot"))
+            fig_lv.update_layout(
+                title="Comissão vs Gasto por SubID",
+                xaxis_title="Gasto (R$)", yaxis_title="Comissão (R$)",
+                paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
+                font_color="#1e293b", font_family="Inter"
+            )
             st.plotly_chart(fig_lv, use_container_width=True)
 
     with tab3:
