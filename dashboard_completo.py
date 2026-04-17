@@ -597,9 +597,31 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         "Cliques Anúncio", "Cliques Shopee", "% Batimento"
     ]
 
+    # Linha de total
+    total_row = {
+        "SubID":          "TOTAL",
+        "Comissão":       f"R$ {df_tabela['comissoes'].sum():,.2f}",
+        "Faturamento":    f"R$ {df_tabela['faturamento'].sum():,.2f}",
+        "Gasto":          f"R$ {df_tabela['gasto'].sum():,.2f}",
+        "Lucro":          f"R$ {df_tabela['lucro'].sum():,.2f}",
+        "ROI":            f"{(df_tabela['lucro'].sum()/df_tabela['gasto'].sum()) if df_tabela['gasto'].sum() > 0 else 0:.2%}",
+        "Total Vendas":   int(df_tabela["total_vendas"].sum()),
+        "Diretas":        int(df_tabela["vendas_diretas"].sum()),
+        "Indiretas":      int(df_tabela["vendas_indiretas"].sum()),
+        "Qtd Itens":      int(df_tabela["qtd_itens"].sum()),
+        "Cliques Anúncio":int(df_tabela["cliques_anuncio"].sum()),
+        "Cliques Shopee": int(df_tabela["cliques_shopee"].sum()),
+        "% Batimento":    "—",
+    }
+    df_display = pd.concat([df_display, pd.DataFrame([total_row])], ignore_index=True)
+
     def colorir_tabela(df):
         styles = pd.DataFrame("", index=df.index, columns=df.columns)
         for i, row in df.iterrows():
+            if row["SubID"] == "TOTAL":
+                for col in df.columns:
+                    styles.at[i, col] = "font-weight:bold; background-color:#f1f5f9;"
+                continue
             try:
                 v = float(str(row["Lucro"]).replace("R$","").replace(",","").strip())
                 styles.at[i, "Lucro"] = "color: #16a34a; font-weight:bold;" if v > 0 else "color: #dc2626; font-weight:bold;"
@@ -626,11 +648,30 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
             vendas_brutas=("_valor", "sum"),
             comissao_total=("_comissao", "sum")
         ).sort_values("vendas_brutas", ascending=False)
+
+        # Linha de total
+        total_canal = pd.DataFrame([{
+            "_canal":        "TOTAL",
+            "pedidos":       canal_agg["pedidos"].sum() if "pedidos" in canal_agg.columns else 0,
+            "vendas_brutas": canal_agg["vendas_brutas"].sum() if "vendas_brutas" in canal_agg.columns else 0,
+            "comissao_total":canal_agg["comissao_total"].sum() if "comissao_total" in canal_agg.columns else 0,
+        }])
+        canal_agg = pd.concat([canal_agg, total_canal], ignore_index=True)
+
         canal_agg.columns = ["Canal", "Pedidos", "Vendas Brutas (R$)", "Comissão Total (R$)"]
-        canal_agg["Vendas Brutas (R$)"]  = canal_agg["Vendas Brutas (R$)"].apply(lambda x: f"R$ {x:,.2f}")
-        canal_agg["Comissão Total (R$)"] = canal_agg["Comissão Total (R$)"].apply(lambda x: f"R$ {x:,.2f}")
-        canal_agg["Pedidos"]             = canal_agg["Pedidos"].apply(lambda x: f"{x} pedidos")
-        st.dataframe(canal_agg, use_container_width=True, hide_index=True)
+        canal_agg["Vendas Brutas (R$)"]  = canal_agg["Vendas Brutas (R$)"].apply(lambda x: f"R$ {float(x):,.2f}")
+        canal_agg["Comissão Total (R$)"] = canal_agg["Comissão Total (R$)"].apply(lambda x: f"R$ {float(x):,.2f}")
+        canal_agg["Pedidos"]             = canal_agg["Pedidos"].apply(lambda x: f"{int(float(x))} pedidos")
+
+        def colorir_canal(df):
+            styles = pd.DataFrame("", index=df.index, columns=df.columns)
+            for i, row in df.iterrows():
+                if row["Canal"] == "TOTAL":
+                    for col in df.columns:
+                        styles.at[i, col] = "font-weight:bold; background-color:#f1f5f9;"
+            return styles
+
+        st.dataframe(canal_agg.style.apply(colorir_canal, axis=None), use_container_width=True, hide_index=True)
         st.divider()
 
     # =========================
