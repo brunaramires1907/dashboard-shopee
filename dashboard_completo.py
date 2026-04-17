@@ -517,26 +517,6 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     st.divider()
 
     # =========================
-    # TABELA CANAL
-    # =========================
-    if not df_shopee_filtrado.empty and "_canal" in df_shopee_filtrado.columns:
-        st.subheader("📡 Canal — Quantidade & Comissão")
-        canal_agg = df_shopee_filtrado.groupby("_canal", as_index=False).agg(
-            pedidos=("_qtd", "count"),
-            vendas_brutas=("_valor", "sum"),
-            comissao_total=("_comissao", "sum")
-        ).sort_values("vendas_brutas", ascending=False)
-
-        canal_agg.columns = ["Canal", "Pedidos", "Vendas Brutas (R$)", "Comissão Total (R$)"]
-        canal_agg["Vendas Brutas (R$)"]  = canal_agg["Vendas Brutas (R$)"].apply(lambda x: f"R$ {x:,.2f}")
-        canal_agg["Comissão Total (R$)"] = canal_agg["Comissão Total (R$)"].apply(lambda x: f"R$ {x:,.2f}")
-        canal_agg["Pedidos"]             = canal_agg["Pedidos"].apply(lambda x: f"{x} pedidos")
-
-        st.dataframe(canal_agg, use_container_width=True, hide_index=True)
-
-    st.divider()
-
-    # =========================
     # COMPARATIVO DE PERÍODOS
     # =========================
     if comparar and not df_shopee_raw.empty and not vendas_b.empty:
