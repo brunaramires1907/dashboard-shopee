@@ -625,12 +625,15 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     # 1. DETALHAMENTO POR SubID (PRIMEIRO)
     # =========================
     titulo("📊", "Detalhamento por SubID")
-    col_ord, col_filt = st.columns([2, 1])
+    col_ord, col_filt1, col_filt2 = st.columns([2, 0.6, 0.6])
     with col_ord:
         ordenar_por = st.selectbox("Ordenar por:", ["roi", "lucro", "faturamento", "comissoes", "gasto", "total_vendas", "%_batimento_cliques"])
-    with col_filt:
+    with col_filt1:
         st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
         mostrar_apenas_prejuizo = st.toggle("🔴 Só prejuízo")
+    with col_filt2:
+        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+        mostrar_apenas_lucro = st.toggle("🟢 Só lucro")
 
     df_tabela = df.copy()
     if mostrar_apenas_prejuizo:
@@ -638,6 +641,13 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         total_prejuizo = df_tabela["lucro"].sum()
         qtd_prejuizo   = len(df_tabela)
         st.error(f"🚨 **{qtd_prejuizo} campanha(s) em prejuízo** — Prejuízo total: **R$ {abs(total_prejuizo):,.2f}**")
+    elif mostrar_apenas_lucro:
+        df_tabela = df_tabela[df_tabela["lucro"] > 0]
+        total_lucro_filtro = df_tabela["lucro"].sum()
+        qtd_lucro          = len(df_tabela)
+        st.markdown(f"""<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 16px; margin-bottom:8px;">
+            <span style="color:#16a34a; font-size:0.9rem;">✅ <strong>{qtd_lucro} campanha(s) com lucro</strong> — Lucro total: <strong>R$ {total_lucro_filtro:,.2f}</strong></span>
+        </div>""", unsafe_allow_html=True)
     df_tabela = df_tabela.sort_values(ordenar_por, ascending=False)
 
     df_display = df_tabela.copy()
