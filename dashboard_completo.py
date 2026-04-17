@@ -672,14 +672,24 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     df_display["tendencia"] = df_tabela["subid"].apply(gerar_spark)
 
     df_display.columns = [
-        "SubID", "Comissão", "Faturamento", "Gasto", "Lucro", "ROI",
+        "SubID", "Comissão", "Faturamento", "Gasto", "Lucro", "_roi_num",
         "Vendas", "Diretas", "Indiretas", "Prods",
-        "Ticket Médio", "Cliques Anúncio", "Cliques Shopee", "% Bat.", "Tend."
+        "Ticket Médio", "Cliques Anúncio", "Cliques Shopee", "% Bat.", "_tend"
     ]
 
-    # Reordena: métricas principais primeiro, cliques no final
-    cols_ordem = ["SubID", "Comissão", "Gasto", "Lucro", "Faturamento", "ROI",
-                  "Tend.", "Ticket Médio", "Vendas", "Diretas", "Indiretas", "Prods",
+    # ROI com seta e cor (combina ROI + tendência)
+    def formatar_roi(row):
+        roi_str = f"{float(str(row['_roi_num']).replace('%','').replace(',','.').strip())/100:.0%}" if "%" in str(row["_roi_num"]) else row["_roi_num"]
+        tend = str(row["_tend"])
+        if "↑" in tend:   return f"↑ {roi_str}"
+        elif "↓" in tend: return f"↓ {roi_str}"
+        else:              return roi_str
+
+    df_display["ROI"] = df_display.apply(formatar_roi, axis=1)
+    df_display = df_display.drop(columns=["_roi_num", "_tend"])
+
+    cols_ordem = ["SubID", "Comissão", "Gasto", "Lucro", "ROI", "Faturamento",
+                  "Ticket Médio", "Vendas", "Diretas", "Indiretas", "Prods",
                   "Cliques Anúncio", "Cliques Shopee", "% Bat."]
     df_display = df_display[cols_ordem]
 
@@ -687,11 +697,10 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     total_row = {
         "SubID":           "TOTAL",
         "Comissão":        f"R$ {df_tabela['comissoes'].sum():,.2f}",
-        "Faturamento":     f"R$ {df_tabela['faturamento'].sum():,.2f}",
         "Gasto":           f"R$ {df_tabela['gasto'].sum():,.2f}",
         "Lucro":           f"R$ {df_tabela['lucro'].sum():,.2f}",
-        "ROI":             f"{(df_tabela['lucro'].sum()/df_tabela['gasto'].sum()) if df_tabela['gasto'].sum() > 0 else 0:.2%}",
-        "Tend.":           "—",
+        "ROI":             f"{(df_tabela['lucro'].sum()/df_tabela['gasto'].sum()) if df_tabela['gasto'].sum() > 0 else 0:.0%}",
+        "Faturamento":     f"R$ {df_tabela['faturamento'].sum():,.2f}",
         "Ticket Médio":    f"R$ {ticket_medio_geral:,.2f}",
         "Vendas":          int(df_tabela["total_vendas"].sum()),
         "Diretas":         int(df_tabela["vendas_diretas"].sum()),
@@ -715,16 +724,14 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
                 styles.at[i, "Lucro"] = "color: #16a34a; font-weight:bold;" if v > 0 else "color: #dc2626; font-weight:bold;"
             except: pass
             try:
-                v = float(str(row["ROI"]).replace("%","").replace(",",".").strip()) / 100
-                if v >= roi_minimo:  styles.at[i, "ROI"] = "color: #16a34a; font-weight:bold;"
-                elif v >= 0:         styles.at[i, "ROI"] = "color: #d97706; font-weight:bold;"
-                else:                styles.at[i, "ROI"] = "color: #dc2626; font-weight:bold;"
-            except: pass
-            try:
-                t = str(row["Tend."])
-                if "↑" in t: styles.at[i, "Tend."] = "color: #16a34a; font-weight:bold;"
-                elif "↓" in t: styles.at[i, "Tend."] = "color: #dc2626; font-weight:bold;"
-                else: styles.at[i, "Tend."] = "color: #d97706;"
+                roi_str = str(row["ROI"])
+                v = float(roi_str.replace("↑","").replace("↓","").replace("%","").replace(",",".").strip()) / 100
+                if "↑" in roi_str or v >= roi_minimo:
+                    styles.at[i, "ROI"] = "color: #16a34a; font-weight:bold;"
+                elif v >= 0:
+                    styles.at[i, "ROI"] = "color: #d97706; font-weight:bold;"
+                else:
+                    styles.at[i, "ROI"] = "color: #dc2626; font-weight:bold;"
             except: pass
         return styles
 
