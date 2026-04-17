@@ -706,8 +706,11 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         st.plotly_chart(fig_comp, use_container_width=True)
 
     st.divider()
-    st.subheader("📊 Detalhamento por SubID")
 
+    # =========================
+    # 1. DETALHAMENTO POR SubID (PRIMEIRO)
+    # =========================
+    st.subheader("📊 Detalhamento por SubID")
     col_ord, col_filt = st.columns([2, 1])
     with col_ord:
         ordenar_por = st.selectbox("Ordenar por:", ["roi", "lucro", "faturamento", "comissoes", "gasto", "total_vendas", "%_batimento_cliques"])
@@ -729,14 +732,12 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     df_display["%_batimento_cliques"] = df_display["%_batimento_cliques"].apply(lambda x: f"{x:.2f}%")
     for col in ["total_vendas", "vendas_diretas", "vendas_indiretas", "qtd_itens", "cliques_anuncio", "cliques_shopee"]:
         df_display[col] = df_display[col].astype(int)
-
     df_display.columns = [
         "SubID", "Comissão", "Faturamento", "Gasto", "Lucro", "ROI",
         "Total Vendas", "Diretas", "Indiretas", "Qtd Itens",
         "Cliques Anúncio", "Cliques Shopee", "% Batimento"
     ]
 
-    # Colorização segura via HTML — sem depender de versão do pandas
     def colorir_tabela(df):
         styles = pd.DataFrame("", index=df.index, columns=df.columns)
         for i, row in df.iterrows():
@@ -752,89 +753,146 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
             except: pass
         return styles
 
-    st.dataframe(
-        df_display.style.apply(colorir_tabela, axis=None),
-        use_container_width=True,
-        hide_index=True
-    )
+    st.dataframe(df_display.style.apply(colorir_tabela, axis=None), use_container_width=True, hide_index=True)
 
     st.divider()
 
     # =========================
-    # IA — INSIGHTS
+    # 2. CANAL
+    # =========================
+    if not df_shopee_filtrado.empty and "_canal" in df_shopee_filtrado.columns:
+        st.subheader("📡 Canal — Quantidade & Comissão")
+        canal_agg = df_shopee_filtrado.groupby("_canal", as_index=False).agg(
+            pedidos=("_qtd", "count"),
+            vendas_brutas=("_valor", "sum"),
+            comissao_total=("_comissao", "sum")
+        ).sort_values("vendas_brutas", ascending=False)
+        canal_agg.columns = ["Canal", "Pedidos", "Vendas Brutas (R$)", "Comissão Total (R$)"]
+        canal_agg["Vendas Brutas (R$)"]  = canal_agg["Vendas Brutas (R$)"].apply(lambda x: f"R$ {x:,.2f}")
+        canal_agg["Comissão Total (R$)"] = canal_agg["Comissão Total (R$)"].apply(lambda x: f"R$ {x:,.2f}")
+        canal_agg["Pedidos"]             = canal_agg["Pedidos"].apply(lambda x: f"{x} pedidos")
+        st.dataframe(canal_agg, use_container_width=True, hide_index=True)
+        st.divider()
+
+    # =========================
+    # 3. IA — INSIGHTS
     # =========================
     st.subheader("🤖 Analista IA — Insights")
-
     if not df.empty and df["roi"].nunique() > 0:
         melhor             = df.loc[df["roi"].idxmax()]
         pior               = df.loc[df["lucro"].idxmin()]
-        batimento_avg      = df["%_batimento_cliques"].mean()
         campanhas_lucro    = len(df[df["lucro"] > 0])
         campanhas_prejuizo = len(df[df["lucro"] < 0])
-
         col_a, col_b = st.columns(2)
         with col_a:
             st.info(f"💡 **Escalar:** `{melhor['subid']}` tem ROI de **{melhor['roi']:.2%}** — sua melhor performance.")
         with col_b:
             if pior["lucro"] < 0:
                 st.warning(f"⚠️ **Revisar:** `{pior['subid']}` gerou prejuízo de **R$ {abs(pior['lucro']):.2f}**.")
-
         col_c, col_d = st.columns(2)
         with col_c:
-            if batimento_avg < 75:
-                st.error(f"📉 **Funil fraco:** Batimento médio de **{batimento_avg:.1f}%**. Muitos cliques se perdem antes da Shopee.")
-            else:
-                st.success(f"✅ **Funil saudável:** Batimento médio de **{batimento_avg:.1f}%**.")
+            st.metric("✅ Campanhas lucrativas", f"{campanhas_lucro}")
         with col_d:
-            st.metric("Campanhas lucrativas", f"{campanhas_lucro}", delta=f"-{campanhas_prejuizo} em prejuízo")
+            st.metric("🚨 Em prejuízo", f"{campanhas_prejuizo}")
 
     st.divider()
 
     # =========================
-    # HISTÓRICO
+    # 4. COMPARATIVO DE PERÍODOS
     # =========================
-    historico_path = "historico_dashboard.csv"
-    registro_hoje = {
-        "data":        date.today().strftime("%Y-%m-%d"),
-        "faturamento": faturamento_bruto_total,
-        "gasto":       total_gasto,
-        "lucro":       total_lucro,
-        "roi":         total_roi
-    }
+    if comparar and not df_shopee_raw.empty and not vendas_b.empty:
+        st.subheader("📊 Comparativo de Períodos")
+        st.caption(f"**Período A:** {data_ini} → {data_fim}  |  **Período B:** {data_ini_b} → {data_fim_b}")
+        fat_a = df_shopee_filtrado["_valor"].sum()
+        com_a = df_shopee_filtrado["_comissao"].sum()
+        ven_a = len(df_shopee_filtrado)
+        fat_b = df_raw_b["_valor"].sum()
+        com_b = df_raw_b["_comissao"].sum()
+        ven_b = len(df_raw_b)
 
-    if faturamento_bruto_total > 0:
-        if os.path.exists(historico_path):
-            hist = pd.read_csv(historico_path)
-            hist = hist[hist["data"] != registro_hoje["data"]]
-            hist = pd.concat([hist, pd.DataFrame([registro_hoje])], ignore_index=True)
+        def delta_str(a, b):
+            if b == 0: return ""
+            d = ((a - b) / b) * 100
+            return f"{'▲' if d >= 0 else '▼'} {abs(d):.1f}% vs B"
+
+        cc1, cc2, cc3 = st.columns(3)
+        cc1.metric("🧾 Faturamento A vs B", f"R$ {fat_a:,.2f}", delta=delta_str(fat_a, fat_b))
+        cc2.metric("💰 Comissão A vs B",    f"R$ {com_a:,.2f}", delta=delta_str(com_a, com_b))
+        cc3.metric("🛒 Vendas A vs B",      f"{ven_a}",          delta=delta_str(ven_a, ven_b))
+        df_comp = vendas[["subid", "faturamento", "comissoes"]].rename(columns={"faturamento": "Fat A", "comissoes": "Com A"})
+        df_comp = df_comp.merge(
+            vendas_b[["subid", "faturamento", "comissoes"]].rename(columns={"faturamento": "Fat B", "comissoes": "Com B"}),
+            on="subid", how="outer"
+        ).fillna(0)
+        fig_comp = go.Figure()
+        fig_comp.add_trace(go.Bar(name="Faturamento A", x=df_comp["subid"], y=df_comp["Fat A"], marker_color="#6366f1"))
+        fig_comp.add_trace(go.Bar(name="Faturamento B", x=df_comp["subid"], y=df_comp["Fat B"], marker_color="#a5b4fc"))
+        fig_comp.update_layout(
+            barmode="group", title="Faturamento por SubID — Período A vs B",
+            paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
+            font_color="#1e293b", font_family="Inter"
+        )
+        st.plotly_chart(fig_comp, use_container_width=True)
+        st.divider()
+
+    # =========================
+    # 5. ANÁLISE VISUAL (ÚLTIMO)
+    # =========================
+    st.subheader("📈 Análise Visual")
+    tab1, tab2 = st.tabs(["ROI por Campanha", "📅 Faturamento por Dia"])
+
+    with tab1:
+        df_sorted = df[df["subid"] != ""].sort_values("roi", ascending=False).head(20)
+        if df_sorted.empty:
+            st.info("Nenhum dado disponível para exibir.")
         else:
-            hist = pd.DataFrame([registro_hoje])
-        hist.to_csv(historico_path, index=False)
+            fig_roi = px.bar(
+                df_sorted, x="subid", y="roi",
+                color="roi",
+                color_continuous_scale=["#f87171", "#fbbf24", "#4ade80"],
+                labels={"roi": "ROI", "subid": "Campanha"},
+                title="ROI por SubID (Top 20)"
+            )
+            fig_roi.add_hline(y=roi_minimo, line_dash="dash", line_color="#6366f1",
+                              annotation_text=f"Meta ROI: {roi_minimo:.0%}", annotation_position="top right")
+            fig_roi.update_layout(
+                paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
+                font_color="#1e293b", coloraxis_showscale=False, font_family="Inter"
+            )
+            fig_roi.update_yaxes(tickformat=".0%")
+            st.plotly_chart(fig_roi, use_container_width=True)
 
-        if len(hist) > 1:
-            st.subheader("📅 Evolução Histórica")
-            hist["data"] = pd.to_datetime(hist["data"])
-            hist_sorted  = hist.sort_values("data")
-
-            fig_hist = go.Figure()
-            fig_hist.add_trace(go.Scatter(
-                x=hist_sorted["data"], y=hist_sorted["faturamento"],
-                name="Faturamento", line=dict(color="#38bdf8", width=2)
-            ))
-            fig_hist.add_trace(go.Scatter(
-                x=hist_sorted["data"], y=hist_sorted["lucro"],
-                name="Lucro", line=dict(color="#4ade80", width=2)
-            ))
-            fig_hist.add_trace(go.Scatter(
-                x=hist_sorted["data"], y=hist_sorted["gasto"],
-                name="Gasto", line=dict(color="#f87171", width=2)
-            ))
-            fig_hist.update_layout(
-                title="Evolução Diária — Faturamento / Lucro / Gasto",
+    with tab2:
+        if not df_shopee_filtrado.empty and "_data" in df_shopee_filtrado.columns:
+            subids_disponiveis = ["Todos"] + sorted(df_shopee_filtrado["subid"].dropna().unique().tolist())
+            subid_sel = st.selectbox("Filtrar por SubID:", subids_disponiveis, key="fat_dia_subid")
+            raw_filtrado = df_shopee_filtrado if subid_sel == "Todos" else df_shopee_filtrado[df_shopee_filtrado["subid"] == subid_sel]
+            fat_dia = raw_filtrado.groupby("_data", as_index=False).agg(
+                faturamento=("_valor", "sum"),
+                comissao=("_comissao", "sum"),
+                vendas=("_qtd", "sum"),
+                diretas=("_direta", "sum"),
+                indiretas=("_indireta", "sum")
+            ).sort_values("_data")
+            fig_dia = go.Figure()
+            fig_dia.add_trace(go.Bar(x=fat_dia["_data"].astype(str), y=fat_dia["faturamento"], name="Faturamento", marker_color="#6366f1"))
+            fig_dia.add_trace(go.Bar(x=fat_dia["_data"].astype(str), y=fat_dia["comissao"],    name="Comissão",    marker_color="#8b5cf6"))
+            fig_dia.update_layout(
+                barmode="group", title="Faturamento e Comissão por Dia",
                 paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
                 font_color="#1e293b", font_family="Inter", xaxis_title="Data", yaxis_title="R$"
             )
-            st.plotly_chart(fig_hist, use_container_width=True)
+            st.plotly_chart(fig_dia, use_container_width=True)
+            fat_dia_display = fat_dia.copy()
+            fat_dia_display["faturamento"] = fat_dia_display["faturamento"].apply(lambda x: f"R$ {x:,.2f}")
+            fat_dia_display["comissao"]    = fat_dia_display["comissao"].apply(lambda x: f"R$ {x:,.2f}")
+            fat_dia_display["vendas"]      = fat_dia_display["vendas"].astype(int)
+            fat_dia_display["diretas"]     = fat_dia_display["diretas"].astype(int)
+            fat_dia_display["indiretas"]   = fat_dia_display["indiretas"].astype(int)
+            fat_dia_display.columns        = ["Data", "Faturamento", "Comissão", "Qtd Vendas", "Diretas", "Indiretas"]
+            st.dataframe(fat_dia_display, use_container_width=True, hide_index=True)
+        else:
+            st.info("Carregue os arquivos de comissão da Shopee para ver o faturamento por dia.")
 
     # =========================
     # DOWNLOADS
@@ -858,7 +916,6 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         )
 
 else:
-    # Estado inicial — nenhum arquivo carregado
     st.info("👈 Carregue seus arquivos na sidebar para começar a análise.")
     st.markdown("""
     ### Como usar:
