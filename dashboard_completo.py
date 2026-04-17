@@ -558,21 +558,24 @@ df["roi"]   = df.apply(lambda x: x["lucro"] / x["gasto"] if x["gasto"] > 0 else 
 df["%_batimento_cliques"] = df.apply(
     lambda x: (x["cliques_shopee"] / x["cliques_anuncio"] * 100) if x["cliques_anuncio"] > 0 else 0, axis=1
 )
-df["total_vendas"] = df["vendas_diretas"] + df["vendas_indiretas"]
+df["total_vendas"]  = df["vendas_diretas"] + df["vendas_indiretas"]
+df["ticket_medio"]  = df.apply(lambda x: x["faturamento"] / x["total_vendas"] if x["total_vendas"] > 0 else 0, axis=1)
 
-# Ordem das colunas conforme solicitado
+# Ordem das colunas
 colunas_ordem = ["subid", "comissoes", "faturamento", "gasto", "lucro", "roi",
                  "total_vendas", "vendas_diretas", "vendas_indiretas", "qtd_itens",
-                 "cliques_anuncio", "cliques_shopee", "%_batimento_cliques"]
+                 "ticket_medio", "cliques_anuncio", "cliques_shopee", "%_batimento_cliques"]
 for c in colunas_ordem:
     if c not in df.columns:
         df[c] = 0
 df = df[colunas_ordem]
 
-total_gasto    = df["gasto"].sum()
-total_comissao = df["comissoes"].sum()
-total_lucro    = df["lucro"].sum()
-total_roi      = total_lucro / total_gasto if total_gasto > 0 else 0
+total_gasto      = df["gasto"].sum()
+total_comissao   = df["comissoes"].sum()
+total_lucro      = df["lucro"].sum()
+total_roi        = total_lucro / total_gasto if total_gasto > 0 else 0
+total_vendas_num = df["total_vendas"].sum()
+ticket_medio_geral = df["faturamento"].sum() / total_vendas_num if total_vendas_num > 0 else 0
 
 # =========================
 # EXIBIÇÃO DE ERROS
@@ -588,7 +591,7 @@ if erros_carregamento:
 if not df.empty and (total_gasto > 0 or total_comissao > 0):
     st.success("✅ Análise gerada com sucesso!")
 
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
     c1.metric("💰 Comissão",    formatar_valor(total_comissao))
     c2.metric("🧾 Fat. Bruto",  formatar_valor(faturamento_bruto_total))
     c3.metric("📉 Gasto",       formatar_valor(total_gasto))
@@ -596,6 +599,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     c5.metric("🚀 ROI Geral",   f"{total_roi:.2%}")
     total_vendas_geral = int(df["total_vendas"].sum())
     c6.metric("🛒 Vendas",      f"{total_vendas_geral}", delta=f"{int(df['vendas_diretas'].sum())}D / {int(df['vendas_indiretas'].sum())}I")
+    c7.metric("🎯 Ticket Médio", formatar_valor(ticket_medio_geral))
 
     # Progresso da Meta
     percentual_meta = min(faturamento_bruto_total / meta_mensal, 1.0) if meta_mensal else 0
@@ -644,29 +648,53 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         df_display[col] = df_display[col].apply(lambda x: f"R$ {x:,.2f}")
     df_display["roi"]                 = df_display["roi"].apply(lambda x: f"{x:.2%}")
     df_display["%_batimento_cliques"] = df_display["%_batimento_cliques"].apply(lambda x: f"{x:.2f}%")
+    df_display["ticket_medio"]        = df_display["ticket_medio"].apply(lambda x: f"R$ {x:,.2f}" if x > 0 else "—")
     for col in ["total_vendas", "vendas_diretas", "vendas_indiretas", "qtd_itens", "cliques_anuncio", "cliques_shopee"]:
         df_display[col] = df_display[col].astype(int)
+
+    # Minigráfico de tendência por SubID (últimos 7 dias)
+    def gerar_spark(subid):
+        if df_shopee_filtrado.empty or "_data" not in df_shopee_filtrado.columns:
+            return "—"
+        dados = df_shopee_filtrado[df_shopee_filtrado["subid"] == subid].copy()
+        if dados.empty: return "—"
+        dados["_data"] = pd.to_datetime(dados["_data"], errors="coerce")
+        por_dia = dados.groupby("_data")["_valor"].sum().sort_index().tail(7)
+        if len(por_dia) < 2: return "—"
+        vals = por_dia.values
+        mn, mx = vals.min(), vals.max()
+        if mx == mn: return "→"
+        pts = [(i * 10, 16 - int((v - mn) / (mx - mn) * 14)) for i, v in enumerate(vals)]
+        pts_str = " ".join(f"{x},{y}" for x, y in pts)
+        cor = "#16a34a" if vals[-1] >= vals[0] else "#dc2626"
+        seta = "↑" if vals[-1] >= vals[0] else "↓"
+        return f'<svg width="60" height="18"><polyline points="{pts_str}" fill="none" stroke="{cor}" stroke-width="1.5"/></svg> {seta}'
+
+    df_display["tendencia"] = df_tabela["subid"].apply(gerar_spark)
+
     df_display.columns = [
         "SubID", "Comissão", "Faturamento", "Gasto", "Lucro", "ROI",
-        "Total Vendas", "Diretas", "Indiretas", "Qtd Itens",
-        "Cliques Anúncio", "Cliques Shopee", "% Batimento"
+        "Total Vendas", "Diretas", "Indiretas", "Qtd Prods",
+        "Ticket Médio", "Cliques Anúncio", "Cliques Shopee", "% Batimento", "Tendência"
     ]
 
     # Linha de total
     total_row = {
-        "SubID":          "TOTAL",
-        "Comissão":       f"R$ {df_tabela['comissoes'].sum():,.2f}",
-        "Faturamento":    f"R$ {df_tabela['faturamento'].sum():,.2f}",
-        "Gasto":          f"R$ {df_tabela['gasto'].sum():,.2f}",
-        "Lucro":          f"R$ {df_tabela['lucro'].sum():,.2f}",
-        "ROI":            f"{(df_tabela['lucro'].sum()/df_tabela['gasto'].sum()) if df_tabela['gasto'].sum() > 0 else 0:.2%}",
-        "Total Vendas":   int(df_tabela["total_vendas"].sum()),
-        "Diretas":        int(df_tabela["vendas_diretas"].sum()),
-        "Indiretas":      int(df_tabela["vendas_indiretas"].sum()),
-        "Qtd Itens":      int(df_tabela["qtd_itens"].sum()),
-        "Cliques Anúncio":int(df_tabela["cliques_anuncio"].sum()),
-        "Cliques Shopee": int(df_tabela["cliques_shopee"].sum()),
-        "% Batimento":    "—",
+        "SubID":           "TOTAL",
+        "Comissão":        f"R$ {df_tabela['comissoes'].sum():,.2f}",
+        "Faturamento":     f"R$ {df_tabela['faturamento'].sum():,.2f}",
+        "Gasto":           f"R$ {df_tabela['gasto'].sum():,.2f}",
+        "Lucro":           f"R$ {df_tabela['lucro'].sum():,.2f}",
+        "ROI":             f"{(df_tabela['lucro'].sum()/df_tabela['gasto'].sum()) if df_tabela['gasto'].sum() > 0 else 0:.2%}",
+        "Total Vendas":    int(df_tabela["total_vendas"].sum()),
+        "Diretas":         int(df_tabela["vendas_diretas"].sum()),
+        "Indiretas":       int(df_tabela["vendas_indiretas"].sum()),
+        "Qtd Prods":       int(df_tabela["qtd_itens"].sum()),
+        "Ticket Médio":    f"R$ {ticket_medio_geral:,.2f}",
+        "Cliques Anúncio": int(df_tabela["cliques_anuncio"].sum()),
+        "Cliques Shopee":  int(df_tabela["cliques_shopee"].sum()),
+        "% Batimento":     "—",
+        "Tendência":       "—",
     }
     df_display = pd.concat([df_display, pd.DataFrame([total_row])], ignore_index=True)
 
@@ -686,6 +714,11 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
                 if v >= roi_minimo:  styles.at[i, "ROI"] = "color: #16a34a; font-weight:bold;"
                 elif v >= 0:         styles.at[i, "ROI"] = "color: #d97706; font-weight:bold;"
                 else:                styles.at[i, "ROI"] = "color: #dc2626; font-weight:bold;"
+            except: pass
+            try:
+                t = str(row["Tendência"])
+                if "↑" in t: styles.at[i, "Tendência"] = "color: #16a34a;"
+                elif "↓" in t: styles.at[i, "Tendência"] = "color: #dc2626;"
             except: pass
         return styles
 
