@@ -367,6 +367,8 @@ df = (
     .merge(cliques_shopee, on="subid", how="outer")
     .fillna(0)
 )
+for col in ["comissoes", "faturamento", "gasto", "vendas_diretas", "vendas_indiretas", "qtd_itens", "cliques_anuncio", "cliques_shopee"]:
+    df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 df["lucro"] = df["comissoes"] - df["gasto"]
 df["roi"]   = df.apply(lambda x: x["lucro"] / x["gasto"] if x["gasto"] > 0 else 0, axis=1)
 df["%_batimento_cliques"] = df.apply(
@@ -479,6 +481,8 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
             st.plotly_chart(fig_lv, use_container_width=True)
 
     with tab3:
+        df["cliques_anuncio"] = pd.to_numeric(df["cliques_anuncio"], errors="coerce").fillna(0)
+        df["cliques_shopee"]  = pd.to_numeric(df["cliques_shopee"],  errors="coerce").fillna(0)
         df_funil = df[df["subid"] != ""].nlargest(10, "cliques_anuncio")
         if df_funil["cliques_anuncio"].sum() > 0:
             fig_funil = go.Figure()
