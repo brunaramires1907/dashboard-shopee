@@ -515,10 +515,25 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     c6.metric("🛒 Vendas",      f"{total_vendas_geral}", delta=f"{int(df['vendas_diretas'].sum())}D / {int(df['vendas_indiretas'].sum())}I")
 
     # Progresso da Meta
-    st.write(f"**Progresso da Meta Mensal (R$ {meta_mensal:,.2f})**")
     percentual_meta = min(faturamento_bruto_total / meta_mensal, 1.0) if meta_mensal else 0
-    st.progress(percentual_meta)
-    st.caption(f"Atingido: {percentual_meta * 100:.2f}%  |  Faltam: R$ {max(meta_mensal - faturamento_bruto_total, 0):,.2f}")
+    st.markdown(f"""
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px 20px; margin:16px 0 8px 0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:0.85rem; font-weight:600; color:#475569; font-family:Inter,sans-serif;">
+                🎯 Meta Mensal — R$ {meta_mensal:,.2f}
+            </span>
+            <span style="font-size:0.85rem; font-weight:700; color:#6366f1; font-family:Inter,sans-serif;">
+                {percentual_meta*100:.1f}% atingido
+            </span>
+        </div>
+        <div style="background:#e2e8f0; border-radius:99px; height:8px; overflow:hidden;">
+            <div style="background:linear-gradient(90deg,#6366f1,#8b5cf6); width:{min(percentual_meta*100,100):.1f}%; height:100%; border-radius:99px; transition:width 0.5s;"></div>
+        </div>
+        <div style="font-size:0.78rem; color:#94a3b8; margin-top:6px; font-family:Inter,sans-serif;">
+            Faltam: R$ {max(meta_mensal - faturamento_bruto_total, 0):,.2f}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.divider()
 
@@ -547,7 +562,6 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         cc2.metric("💰 Comissão A vs B",    f"R$ {com_a:,.2f}", delta=delta_str(com_a, com_b))
         cc3.metric("🛒 Vendas A vs B",      f"{ven_a}",          delta=delta_str(ven_a, ven_b))
 
-        # Gráfico comparativo por SubID
         df_comp = vendas[["subid", "faturamento", "comissoes"]].rename(columns={"faturamento": "Fat A", "comissoes": "Com A"})
         df_comp = df_comp.merge(
             vendas_b[["subid", "faturamento", "comissoes"]].rename(columns={"faturamento": "Fat B", "comissoes": "Com B"}),
@@ -563,8 +577,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
             font_color="#1e293b", font_family="Inter"
         )
         st.plotly_chart(fig_comp, use_container_width=True)
-
-    st.divider()
+        st.divider()
 
     # =========================
     # 1. DETALHAMENTO POR SubID (PRIMEIRO)
