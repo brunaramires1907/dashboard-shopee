@@ -403,9 +403,12 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
     st.sidebar.markdown("**🔍 Filtros**")
 
     # --- Filtro de período ---
-    st.sidebar.markdown("<span style='font-size:0.8rem; color:#64748b;'>📅 Período</span>", unsafe_allow_html=True)
-    data_ini = st.sidebar.date_input("De:", value=data_min, min_value=data_min, max_value=data_max, format="DD/MM/YYYY")
-    data_fim = st.sidebar.date_input("Até:", value=data_max, min_value=data_min, max_value=data_max, format="DD/MM/YYYY")
+    st.sidebar.markdown("<span style='font-size:0.8rem; color:#64748b;'>📅 Período principal (análise)</span>", unsafe_allow_html=True)
+    col_d1, col_d2 = st.sidebar.columns(2)
+    with col_d1:
+        data_ini = st.date_input("Início:", value=data_min, min_value=data_min, max_value=data_max, format="DD/MM/YYYY")
+    with col_d2:
+        data_fim = st.date_input("Fim:", value=data_max, min_value=data_min, max_value=data_max, format="DD/MM/YYYY")
 
     # --- Filtro por SubID ---
     st.sidebar.markdown("<span style='font-size:0.8rem; color:#64748b;'>🏷️ SubID(s)</span>", unsafe_allow_html=True)
@@ -429,9 +432,13 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
     st.sidebar.markdown("")
     comparar = st.sidebar.toggle("📊 Comparar dois períodos")
     if comparar:
-        st.sidebar.markdown("<span style='font-size:0.8rem; color:#64748b;'>📅 Período de comparação</span>", unsafe_allow_html=True)
-        data_ini_b = st.sidebar.date_input("De:", value=data_min, min_value=data_min, max_value=data_max, key="db1", format="DD/MM/YYYY")
-        data_fim_b = st.sidebar.date_input("Até:", value=data_max, min_value=data_min, max_value=data_max, key="db2", format="DD/MM/YYYY")
+        st.sidebar.markdown("<span style='font-size:0.8rem; color:#f59e0b;'>📅 Período de comparação</span>", unsafe_allow_html=True)
+        st.sidebar.caption("Selecione outro intervalo para comparar com o período principal")
+        col_c1, col_c2 = st.sidebar.columns(2)
+        with col_c1:
+            data_ini_b = st.date_input("Início:", value=data_min, min_value=data_min, max_value=data_max, key="db1", format="DD/MM/YYYY")
+        with col_c2:
+            data_fim_b = st.date_input("Fim:", value=data_max, min_value=data_min, max_value=data_max, key="db2", format="DD/MM/YYYY")
 
     # --- Aplicar filtros no raw ---
     mask = (
