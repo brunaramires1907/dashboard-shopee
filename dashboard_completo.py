@@ -268,24 +268,32 @@ faturamento_bruto_total = 0.0
 erros_carregamento = []
 df_shopee_raw    = pd.DataFrame()  # dados brutos para análise por dia
 
-# --- ADS ---
-lista_ads = []
+# --- ADS COM DATA ---
+lista_ads     = []  # agregado por subid (total)
+lista_ads_raw = []  # raw com data por dia
 
 if pinterest_files:
     for f in pinterest_files:
         try:
             dfp = ler_csv_inteligente(f)
             dfp.columns = [normalizar_coluna(c) for c in dfp.columns]
-            sub     = next((c for c in dfp.columns if "nome" in c), None)
-            gasto   = next((c for c in dfp.columns if "gasto" in c), None)
-            cliques = next((c for c in dfp.columns if "cliques" in c), None)
-            if sub and gasto:
-                dfp["subid"]          = dfp[sub].apply(limpar_subid)
-                dfp["gasto"]          = dfp[gasto].apply(converter_valor)
-                dfp["cliques_anuncio"] = pd.to_numeric(dfp[cliques], errors="coerce").fillna(0) if cliques else 0
+
+            # Colunas do Pinterest com data
+            col_sub     = next((c for c in dfp.columns if "ad_name" in c or "nome" in c), None)
+            col_gasto   = next((c for c in dfp.columns if "spend" in c or "gasto" in c), None)
+            col_cliques = next((c for c in dfp.columns if "pin_clicks" in c or "cliques" in c), None)
+            col_data    = next((c for c in dfp.columns if c == "date" or "data" in c), None)
+
+            if col_sub and col_gasto:
+                dfp["subid"]           = dfp[col_sub].apply(limpar_subid)
+                dfp["gasto"]           = dfp[col_gasto].apply(converter_valor)
+                dfp["cliques_anuncio"] = pd.to_numeric(dfp[col_cliques], errors="coerce").fillna(0) if col_cliques else 0
+                dfp["_data"]           = pd.to_datetime(dfp[col_data], errors="coerce") if col_data else pd.NaT
+                dfp["_plataforma"]     = "Pinterest"
                 lista_ads.append(dfp[["subid", "gasto", "cliques_anuncio"]])
+                lista_ads_raw.append(dfp[["subid", "gasto", "cliques_anuncio", "_data", "_plataforma"]])
             else:
-                erros_carregamento.append(f"Pinterest '{f.name}': colunas 'nome' ou 'gasto' não encontradas.")
+                erros_carregamento.append(f"Pinterest '{f.name}': colunas não encontradas.")
         except Exception as e:
             erros_carregamento.append(f"Pinterest '{f.name}': {e}")
 
@@ -294,18 +302,31 @@ if meta_files:
         try:
             meta = ler_excel(f)
             meta.columns = [normalizar_coluna(c) for c in meta.columns]
-            if "nome_do_anuncio" not in meta.columns or "valor_usado_brl" not in meta.columns:
-                erros_carregamento.append(f"Meta '{f.name}': colunas esperadas não encontradas. Verifique o formato.")
+
+            col_nome    = next((c for c in meta.columns if "nome_do_anuncio" in c), None)
+            col_gasto   = next((c for c in meta.columns if "valor_usado_brl" in c or "valor_usado" in c), None)
+            col_cliques = next((c for c in meta.columns if "resultados" in c), None)
+            col_data    = next((c for c in meta.columns if "inicio_dos_relatorios" in c or "inicio" in c), None)
+
+            if not col_nome or not col_gasto:
+                erros_carregamento.append(f"Meta '{f.name}': colunas esperadas não encontradas.")
                 continue
-            meta["subid"]           = meta["nome_do_anuncio"].apply(limpar_subid)
-            meta["gasto"]           = meta["valor_usado_brl"].apply(converter_valor)
-            meta["cliques_anuncio"] = pd.to_numeric(meta.get("resultados", 0), errors="coerce").fillna(0)
+
+            meta["subid"]           = meta[col_nome].apply(limpar_subid)
+            meta["gasto"]           = meta[col_gasto].apply(converter_valor)
+            meta["cliques_anuncio"] = pd.to_numeric(meta[col_cliques], errors="coerce").fillna(0) if col_cliques else 0
+            meta["_data"]           = pd.to_datetime(meta[col_data], errors="coerce") if col_data else pd.NaT
+            meta["_plataforma"]     = "Meta"
             lista_ads.append(meta[["subid", "gasto", "cliques_anuncio"]])
+            lista_ads_raw.append(meta[["subid", "gasto", "cliques_anuncio", "_data", "_plataforma"]])
         except Exception as e:
             erros_carregamento.append(f"Meta '{f.name}': {e}")
 
 if lista_ads:
     ads = pd.concat(lista_ads).groupby("subid", as_index=False).sum()
+
+# Raw de ads com data para filtro
+df_ads_raw = pd.concat(lista_ads_raw, ignore_index=True) if lista_ads_raw else pd.DataFrame()
 
 # --- SHOPEE COMISSÕES ---
 lista_vendas = []
@@ -470,6 +491,20 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
     else:
         vendas = pd.DataFrame(columns=["subid", "comissoes", "faturamento", "vendas_diretas", "vendas_indiretas", "qtd_itens"])
 
+    # Filtra ads por data se disponível
+    if not df_ads_raw.empty and "_data" in df_ads_raw.columns:
+        df_ads_raw["_data"] = pd.to_datetime(df_ads_raw["_data"], errors="coerce")
+        mask_ads = (
+            (df_ads_raw["_data"].dt.date >= data_ini) &
+            (df_ads_raw["_data"].dt.date <= data_fim)
+        )
+        ads_filtrado = df_ads_raw[mask_ads].groupby("subid", as_index=False).agg(
+            gasto=("gasto", "sum"),
+            cliques_anuncio=("cliques_anuncio", "sum")
+        )
+    else:
+        ads_filtrado = ads.copy()
+
     # Período B para comparativo
     if comparar:
         mask_b = (
@@ -487,6 +522,7 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
         ) if not df_raw_b.empty else pd.DataFrame()
 else:
     df_shopee_filtrado = df_shopee_raw.copy()
+    ads_filtrado = ads.copy()
     comparar = False
 
 # --- SHOPEE CLIQUES ---
@@ -510,7 +546,7 @@ if lista_cliques:
 
 # --- MERGE E CÁLCULOS ---
 df = (
-    ads
+    ads_filtrado
     .merge(vendas,         on="subid", how="outer")
     .merge(cliques_shopee, on="subid", how="outer")
     .fillna(0)
