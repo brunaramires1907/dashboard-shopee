@@ -132,19 +132,8 @@ st.markdown("""
         border-radius: 8px !important;
     }
 
-    /* Checkboxes como pills coloridas */
-    [data-testid="stCheckbox"]:has(input#filtro_prej) label,
-    [data-testid="stCheckbox"]:has(input#filtro_lucro) label {
-        background: #f1f5f9;
-        border: 1px solid #e2e8f0;
-        border-radius: 99px !important;
-        padding: 4px 12px !important;
-        font-size: 0.8rem !important;
-        font-weight: 500 !important;
-        cursor: pointer;
-        transition: all 0.15s;
-    }
-    [data-testid="stCheckbox"] input[type="checkbox"] { display: none !important; }
+    /* Toggle alinhado */
+    div[data-testid="stToggle"] { margin-top: 4px !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -649,9 +638,8 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         ordenar_por = ordenar_por_map[ordenar_por_label]
     with col_filt:
         st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-        st.markdown("<span style='font-size:0.78rem; color:#64748b; font-weight:500;'>Filtrar:</span>", unsafe_allow_html=True)
-        mostrar_apenas_prejuizo = st.checkbox("🔴 Só prejuízo", key="filtro_prej")
-        mostrar_apenas_lucro    = st.checkbox("🟢 Só lucro",    key="filtro_lucro")
+        mostrar_apenas_prejuizo = st.toggle("🔴 Só prejuízo")
+        mostrar_apenas_lucro    = st.toggle("🟢 Só lucro")
     st.markdown("</div>", unsafe_allow_html=True)
 
     df_tabela = df.copy()
