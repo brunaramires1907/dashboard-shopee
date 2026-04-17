@@ -625,15 +625,12 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     # 1. DETALHAMENTO POR SubID (PRIMEIRO)
     # =========================
     titulo("📊", "Detalhamento por SubID")
-    col_ord, col_filt1, col_filt2 = st.columns([2, 0.6, 0.6])
+    col_ord, col_filt = st.columns([2, 1])
     with col_ord:
         ordenar_por = st.selectbox("Ordenar por:", ["roi", "lucro", "faturamento", "comissoes", "gasto", "total_vendas", "%_batimento_cliques"])
-    with col_filt1:
-        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+    with col_filt:
         mostrar_apenas_prejuizo = st.toggle("🔴 Só prejuízo")
-    with col_filt2:
-        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-        mostrar_apenas_lucro = st.toggle("🟢 Só lucro")
+        mostrar_apenas_lucro    = st.toggle("🟢 Só lucro")
 
     df_tabela = df.copy()
     if mostrar_apenas_prejuizo:
