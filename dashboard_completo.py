@@ -171,18 +171,14 @@ imposto_meta = st.sidebar.number_input("Imposto Meta Ads (%)", min_value=0.0, ma
 imposto_nf   = st.sidebar.number_input("Imposto Nota Fiscal (%)", min_value=0.0, max_value=100.0, value=0.0, step=0.1, help="Aplicado sobre o faturamento bruto")
 
 if imposto_meta > 0 or imposto_nf > 0:
-    base = 100.0
     st.sidebar.markdown(f"""
     <div style="background:#fef9ec; border:1px solid #fde68a; border-radius:8px; padding:10px 12px; margin-top:4px; font-size:0.78rem;">
         <div style="color:#92400e; font-weight:700; margin-bottom:6px;">Simulação (base R$ 100,00)</div>
         <div style="display:flex; justify-content:space-between; color:#78350f;">
-            <span>Meta Ads ({imposto_meta:.1f}%)</span><span>= R$ {base*imposto_meta/100:.2f}</span>
+            <span>Meta Ads sobre gasto ({imposto_meta:.1f}%)</span><span>= R$ {100*imposto_meta/100:.2f}</span>
         </div>
         <div style="display:flex; justify-content:space-between; color:#78350f; margin-top:2px;">
-            <span>Nota Fiscal ({imposto_nf:.1f}%)</span><span>= R$ {base*imposto_nf/100:.2f}</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; color:#92400e; font-weight:700; margin-top:6px; border-top:1px solid #fde68a; padding-top:4px;">
-            <span>Total impostos</span><span>= R$ {base*(imposto_meta+imposto_nf)/100:.2f}</span>
+            <span>Nota Fiscal sobre comissão ({imposto_nf:.1f}%)</span><span>= R$ {100*imposto_nf/100:.2f}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -577,7 +573,7 @@ df = (
 )
 for col in ["comissoes", "faturamento", "gasto", "vendas_diretas", "vendas_indiretas", "qtd_itens", "cliques_anuncio", "cliques_shopee"]:
     df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
-df["imposto_total"] = df["faturamento"] * (imposto_meta + imposto_nf) / 100
+df["imposto_total"] = (df["gasto"] * imposto_meta / 100) + (df["comissoes"] * imposto_nf / 100)
 df["lucro"] = df["comissoes"] - df["gasto"] - df["imposto_total"]
 df["roi"]   = df.apply(lambda x: x["lucro"] / x["gasto"] if x["gasto"] > 0 else 0, axis=1)
 df["%_batimento_cliques"] = df.apply(
@@ -940,7 +936,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         else:
             fat_dia_agg["invest"] = 0
 
-        fat_dia_agg["imposto"]      = fat_dia_agg["faturado"] * (imposto_meta + imposto_nf) / 100
+        fat_dia_agg["imposto"]      = (fat_dia_agg["invest"] * imposto_meta / 100) + (fat_dia_agg["comissao"] * imposto_nf / 100)
         fat_dia_agg["lucro"]        = fat_dia_agg["comissao"] - fat_dia_agg["invest"] - fat_dia_agg["imposto"]
         fat_dia_agg["faturado_acum"] = fat_dia_agg["faturado"].cumsum()
 
