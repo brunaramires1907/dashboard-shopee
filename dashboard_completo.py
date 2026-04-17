@@ -654,7 +654,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     for col in ["total_vendas", "vendas_diretas", "vendas_indiretas", "qtd_itens", "cliques_anuncio", "cliques_shopee"]:
         df_display[col] = df_display[col].astype(int)
 
-    # Minigráfico de tendência por SubID (últimos 7 dias)
+    # Tendência por texto (Streamlit não renderiza SVG em dataframe)
     def gerar_spark(subid):
         if df_shopee_filtrado.empty or "_data" not in df_shopee_filtrado.columns:
             return "—"
@@ -664,13 +664,10 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         por_dia = dados.groupby("_data")["_valor"].sum().sort_index().tail(7)
         if len(por_dia) < 2: return "—"
         vals = por_dia.values
-        mn, mx = vals.min(), vals.max()
-        if mx == mn: return "→"
-        pts = [(i * 10, 16 - int((v - mn) / (mx - mn) * 14)) for i, v in enumerate(vals)]
-        pts_str = " ".join(f"{x},{y}" for x, y in pts)
-        cor = "#16a34a" if vals[-1] >= vals[0] else "#dc2626"
-        seta = "↑" if vals[-1] >= vals[0] else "↓"
-        return f'<svg width="60" height="18"><polyline points="{pts_str}" fill="none" stroke="{cor}" stroke-width="1.5"/></svg> {seta}'
+        var = ((vals[-1] - vals[0]) / vals[0] * 100) if vals[0] > 0 else 0
+        if var > 0:   return f"↑ +{var:.1f}%"
+        elif var < 0: return f"↓ {var:.1f}%"
+        else:         return "→ 0%"
 
     df_display["tendencia"] = df_tabela["subid"].apply(gerar_spark)
 
@@ -719,8 +716,9 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
             except: pass
             try:
                 t = str(row["Tendência"])
-                if "↑" in t: styles.at[i, "Tendência"] = "color: #16a34a;"
-                elif "↓" in t: styles.at[i, "Tendência"] = "color: #dc2626;"
+                if "↑" in t: styles.at[i, "Tendência"] = "color: #16a34a; font-weight:bold;"
+                elif "↓" in t: styles.at[i, "Tendência"] = "color: #dc2626; font-weight:bold;"
+                else: styles.at[i, "Tendência"] = "color: #d97706;"
             except: pass
         return styles
 
