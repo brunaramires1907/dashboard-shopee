@@ -917,11 +917,12 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         else:
             fat_dia_agg["invest"] = 0
 
-        fat_dia_agg["lucro"]     = fat_dia_agg["faturado"] - fat_dia_agg["invest"]
+        fat_dia_agg["lucro"]        = fat_dia_agg["comissao"] - fat_dia_agg["invest"]
         fat_dia_agg["faturado_acum"] = fat_dia_agg["faturado"].cumsum()
 
         total_faturado = fat_dia_agg["faturado"].sum()
         total_invest   = fat_dia_agg["invest"].sum()
+        total_comissao_dia = fat_dia_agg["comissao"].sum()
         total_lucro    = fat_dia_agg["lucro"].sum()
         media_diaria   = total_faturado / max(len(fat_dia_agg), 1)
         projecao_mes   = media_diaria * ultimo_dia_mes
@@ -992,24 +993,26 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
 
         # Tabela diária
         df_tabela_dia = fat_dia_agg.copy()
-        df_tabela_dia["_data"]       = pd.to_datetime(df_tabela_dia["_data"]).dt.strftime("%d/%m/%Y")
-        df_tabela_dia["invest"]      = df_tabela_dia["invest"].apply(lambda x: f"R$ {x:,.2f}")
-        df_tabela_dia["faturado"]    = df_tabela_dia["faturado"].apply(lambda x: f"R$ {x:,.2f}")
-        df_tabela_dia["lucro_str"]   = fat_dia_agg["lucro"].apply(lambda x: f"R$ {x:,.2f}")
+        df_tabela_dia["_data"]    = pd.to_datetime(df_tabela_dia["_data"]).dt.strftime("%d/%m/%Y")
+        df_tabela_dia["invest"]   = df_tabela_dia["invest"].apply(lambda x: f"R$ {x:,.2f}")
+        df_tabela_dia["comissao"] = df_tabela_dia["comissao"].apply(lambda x: f"R$ {x:,.2f}")
+        df_tabela_dia["faturado"] = df_tabela_dia["faturado"].apply(lambda x: f"R$ {x:,.2f}")
+        df_tabela_dia["lucro_str"]= fat_dia_agg["lucro"].apply(lambda x: f"R$ {x:,.2f}")
         df_tabela_dia["faturado_acum"] = df_tabela_dia["faturado_acum"].apply(lambda x: f"R$ {x:,.2f}")
 
-        # Linha de total
         total_row_dia = {
-            "_data": "TOTAL",
-            "invest": f"R$ {total_invest:,.2f}",
-            "faturado": f"R$ {total_faturado:,.2f}",
-            "lucro_str": f"R$ {total_lucro:,.2f}",
-            "faturado_acum": "—",
-            "comissao": 0
+            "_data": "TOTAL", "invest": 0, "comissao": 0, "faturado": 0, "lucro_str": 0, "faturado_acum": 0
         }
-        df_exibe = df_tabela_dia[["_data","invest","faturado","lucro_str","faturado_acum"]].copy()
-        df_exibe.columns = ["Dia", "Invest", "Faturado", "Lucro", "Faturado Acum."]
-        total_df = pd.DataFrame([{"Dia":"TOTAL","Invest":f"R$ {total_invest:,.2f}","Faturado":f"R$ {total_faturado:,.2f}","Lucro":f"R$ {total_lucro:,.2f}","Faturado Acum.":"—"}])
+        df_exibe = df_tabela_dia[["_data","comissao","invest","faturado","lucro_str","faturado_acum"]].copy()
+        df_exibe.columns = ["Dia", "Comissão", "Gasto", "Faturado", "Lucro", "Faturado Acum."]
+        total_df = pd.DataFrame([{
+            "Dia": "TOTAL",
+            "Comissão": f"R$ {total_comissao_dia:,.2f}",
+            "Gasto": f"R$ {total_invest:,.2f}",
+            "Faturado": f"R$ {total_faturado:,.2f}",
+            "Lucro": f"R$ {total_lucro:,.2f}",
+            "Faturado Acum.": "—"
+        }])
         df_exibe = pd.concat([df_exibe, total_df], ignore_index=True)
 
         def colorir_dia(df):
