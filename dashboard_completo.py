@@ -129,10 +129,6 @@ roi_minimo = st.sidebar.slider("ROI mínimo aceitável", min_value=-1.0, max_val
 meta_mensal = st.sidebar.number_input("Meta mensal de faturamento (R$)", min_value=0.0, value=10000.0, step=500.0)
 
 st.sidebar.divider()
-st.sidebar.header("🤖 IA (Anthropic)")
-api_key = st.sidebar.text_input("Chave API Anthropic (opcional)", type="password", help="Obtenha em console.anthropic.com")
-
-st.sidebar.divider()
 st.sidebar.header("📂 Importação de Arquivos")
 
 pinterest_files       = st.sidebar.file_uploader("Pinterest (CSV)",           type="csv",  accept_multiple_files=True)
@@ -619,65 +615,6 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     with col_d:
         st.metric("Campanhas lucrativas", f"{campanhas_lucro}", delta=f"-{campanhas_prejuizo} em prejuízo")
 
-    # IA Real via Anthropic
-    if api_key:
-        st.markdown("---")
-        st.markdown("**🧠 Análise profunda via Claude (Anthropic)**")
-
-        resumo_dados = f"""
-        Dados do dashboard de afiliados:
-        - Faturamento bruto: R$ {faturamento_bruto_total:,.2f}
-        - Total gasto em ads: R$ {total_gasto:,.2f}
-        - Total comissões: R$ {total_comissao:,.2f}
-        - Lucro líquido: R$ {total_lucro:,.2f}
-        - ROI geral: {total_roi:.2%}
-        - Meta mensal: R$ {meta_mensal:,.2f} ({percentual_meta*100:.1f}% atingida)
-        - Total de vendas: {int(df['total_vendas'].sum())} ({int(df['vendas_diretas'].sum())} diretas / {int(df['vendas_indiretas'].sum())} indiretas)
-        - Campanhas lucrativas: {campanhas_lucro}
-        - Campanhas em prejuízo: {campanhas_prejuizo}
-        - Melhor campanha: {melhor['subid']} com ROI {melhor['roi']:.2%}
-        - Pior campanha: {pior['subid']} com lucro R$ {pior['lucro']:,.2f}
-        - Batimento médio de cliques: {batimento_avg:.1f}%
-        Top 5 por ROI:
-        {df.nlargest(5, 'roi')[['subid','gasto','comissoes','faturamento','lucro','roi','total_vendas']].to_string(index=False)}
-        """
-
-        if st.button("🔍 Gerar análise detalhada com IA"):
-            with st.spinner("Consultando Claude..."):
-                try:
-                    response = requests.post(
-                        "https://api.anthropic.com/v1/messages",
-                        headers={
-                            "x-api-key": api_key,
-                            "anthropic-version": "2023-06-01",
-                            "content-type": "application/json"
-                        },
-                        json={
-                            "model": "claude-sonnet-4-20250514",
-                            "max_tokens": 1024,
-                            "messages": [{
-                                "role": "user",
-                                "content": f"""Você é um especialista em marketing de afiliados e tráfego pago.
-                                Analise os dados abaixo e forneça:
-                                1. Diagnóstico geral da operação
-                                2. Top 3 ações prioritárias para aumentar o lucro
-                                3. Alertas importantes
-                                4. Previsão se vai bater a meta mensal com base no ritmo atual
-                                Seja direto, use bullet points e linguagem prática.
-                                
-                                {resumo_dados}"""
-                            }]
-                        },
-                        timeout=30
-                    )
-                    resultado = response.json()
-                    texto_ia = resultado["content"][0]["text"]
-                    st.markdown(texto_ia)
-                except Exception as e:
-                    st.error(f"Erro ao consultar a IA: {e}")
-    else:
-        st.caption("💡 Adicione sua chave API da Anthropic na sidebar para ativar a análise profunda com IA.")
-
     st.divider()
 
     # =========================
@@ -755,6 +692,5 @@ else:
     1. **Configure** o ROI mínimo e sua meta mensal
     2. **Importe** os arquivos de cada plataforma (Pinterest, Meta, Shopee)
     3. **Analise** os resultados nos cards, gráficos e tabela
-    4. **(Opcional)** Adicione sua chave da Anthropic para análise profunda com IA
-    5. **Baixe** o relatório em Excel ou CSV
+    4. **Baixe** o relatório em Excel ou CSV
     """)
