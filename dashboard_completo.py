@@ -172,14 +172,8 @@ imposto_nf   = st.sidebar.number_input("Imposto Nota Fiscal (%)", min_value=0.0,
 
 if imposto_meta > 0 or imposto_nf > 0:
     st.sidebar.markdown(f"""
-    <div style="background:#fef9ec; border:1px solid #fde68a; border-radius:8px; padding:10px 12px; margin-top:4px; font-size:0.78rem;">
-        <div style="color:#92400e; font-weight:700; margin-bottom:6px;">Simulação (base R$ 100,00)</div>
-        <div style="display:flex; justify-content:space-between; color:#78350f;">
-            <span>Meta Ads sobre gasto ({imposto_meta:.1f}%)</span><span>= R$ {100*imposto_meta/100:.2f}</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; color:#78350f; margin-top:2px;">
-            <span>Nota Fiscal sobre comissão ({imposto_nf:.1f}%)</span><span>= R$ {100*imposto_nf/100:.2f}</span>
-        </div>
+    <div style="background:#fef9ec; border:1px solid #fde68a; border-radius:8px; padding:8px 12px; margin-top:4px; font-size:0.78rem; color:#92400e;">
+        ⚠️ Impostos ativos — {imposto_meta:.1f}% Meta Ads · {imposto_nf:.1f}% NF
     </div>
     """, unsafe_allow_html=True)
 
@@ -621,6 +615,21 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     total_vendas_geral = int(df["total_vendas"].sum())
     c6.metric("Vendas",      f"{total_vendas_geral}", delta=f"{int(df['vendas_diretas'].sum())}D / {int(df['vendas_indiretas'].sum())}I")
     c7.metric("Ticket Médio", formatar_valor(ticket_medio_geral))
+
+    # Simulação de impostos com valores reais
+    if imposto_meta > 0 or imposto_nf > 0:
+        imp_meta_val = total_gasto * imposto_meta / 100
+        imp_nf_val   = total_comissao * imposto_nf / 100
+        st.markdown(f"""
+        <div style="background:#fef9ec; border:1px solid #fde68a; border-radius:12px; padding:12px 20px; margin-bottom:12px; display:flex; gap:0; align-items:center;">
+            <div style="font-size:10px; font-weight:700; color:#92400e; text-transform:uppercase; letter-spacing:0.06em; margin-right:20px; white-space:nowrap;">🧾 Impostos</div>
+            <div style="flex:1; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                <span style="font-size:12px; color:#78350f;">Meta Ads {imposto_meta:.1f}% sobre gasto: <strong>R$ {imp_meta_val:,.2f}</strong></span>
+                <span style="font-size:12px; color:#78350f;">Nota Fiscal {imposto_nf:.1f}% sobre comissão: <strong>R$ {imp_nf_val:,.2f}</strong></span>
+                <span style="font-size:12px; color:#92400e; font-weight:700;">Total: R$ {imp_meta_val + imp_nf_val:,.2f}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     # Progresso da Meta
     percentual_meta = min(faturamento_bruto_total / meta_mensal, 1.0) if meta_mensal else 0
