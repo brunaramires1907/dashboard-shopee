@@ -428,41 +428,49 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
 
     with tab1:
         df_sorted = df[df["subid"] != ""].sort_values("roi", ascending=False).head(20)
-        fig_roi = px.bar(
-            df_sorted,
-            x="subid", y="roi",
-            color="roi",
-            color_continuous_scale=["#f87171", "#fbbf24", "#4ade80"],
-            labels={"roi": "ROI", "subid": "Campanha"},
-            title="ROI por SubID (Top 20)"
-        )
-        fig_roi.add_hline(y=roi_minimo, line_dash="dash", line_color="#38bdf8",
-                          annotation_text=f"Meta ROI: {roi_minimo:.0%}", annotation_position="top right")
-        fig_roi.update_layout(
-            paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
-            font_color="#1e293b", coloraxis_showscale=False,
-            font_family="Inter"
-        )
-        fig_roi.update_yaxes(tickformat=".0%")
-        st.plotly_chart(fig_roi, use_container_width=True)
+        if df_sorted.empty:
+            st.info("Nenhum dado disponível para exibir.")
+        else:
+            fig_roi = px.bar(
+                df_sorted,
+                x="subid", y="roi",
+                color="roi",
+                color_continuous_scale=["#f87171", "#fbbf24", "#4ade80"],
+                labels={"roi": "ROI", "subid": "Campanha"},
+                title="ROI por SubID (Top 20)"
+            )
+            fig_roi.add_hline(y=roi_minimo, line_dash="dash", line_color="#38bdf8",
+                              annotation_text=f"Meta ROI: {roi_minimo:.0%}", annotation_position="top right")
+            fig_roi.update_layout(
+                paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
+                font_color="#1e293b", coloraxis_showscale=False,
+                font_family="Inter"
+            )
+            fig_roi.update_yaxes(tickformat=".0%")
+            st.plotly_chart(fig_roi, use_container_width=True)
 
     with tab2:
         df_plot = df[df["subid"] != ""].copy()
-        fig_lv = px.scatter(
-            df_plot,
-            x="gasto", y="comissoes",
-            size=df_plot["lucro"].clip(lower=0) + 1,
-            color="lucro",
-            color_continuous_scale=["#f87171", "#4ade80"],
-            hover_name="subid",
-            labels={"gasto": "Gasto (R$)", "comissoes": "Comissão (R$)", "lucro": "Lucro"},
-            title="Comissão vs Gasto por SubID"
-        )
-        max_val = max(df_plot["gasto"].max(), df_plot["comissoes"].max()) * 1.1
-        fig_lv.add_shape(type="line", x0=0, y0=0, x1=max_val, y1=max_val,
-                         line=dict(color="#64748b", dash="dot"))
-        fig_lv.update_layout(paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc", font_color="#1e293b", font_family="Inter")
-        st.plotly_chart(fig_lv, use_container_width=True)
+        if df_plot["gasto"].sum() == 0 and df_plot["comissoes"].sum() == 0:
+            st.info("📊 Carregue arquivos de anúncios (Pinterest ou Meta) junto com a Shopee para ver este gráfico.")
+        else:
+            # Garante que size seja sempre > 0
+            df_plot["_size"] = df_plot["lucro"].clip(lower=0) + 1
+            fig_lv = px.scatter(
+                df_plot,
+                x="gasto", y="comissoes",
+                size="_size",
+                color="lucro",
+                color_continuous_scale=["#f87171", "#4ade80"],
+                hover_name="subid",
+                labels={"gasto": "Gasto (R$)", "comissoes": "Comissão (R$)", "lucro": "Lucro"},
+                title="Comissão vs Gasto por SubID"
+            )
+            max_val = max(df_plot["gasto"].max(), df_plot["comissoes"].max(), 1) * 1.1
+            fig_lv.add_shape(type="line", x0=0, y0=0, x1=max_val, y1=max_val,
+                             line=dict(color="#64748b", dash="dot"))
+            fig_lv.update_layout(paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc", font_color="#1e293b", font_family="Inter")
+            st.plotly_chart(fig_lv, use_container_width=True)
 
     with tab3:
         df_funil = df[df["subid"] != ""].nlargest(10, "cliques_anuncio")
@@ -593,27 +601,28 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     # =========================
     st.subheader("🤖 Analista IA — Insights")
 
-    melhor = df.loc[df["roi"].idxmax()]
-    pior   = df.loc[df["lucro"].idxmin()]
-    batimento_avg = df["%_batimento_cliques"].mean()
-    campanhas_lucro    = len(df[df["lucro"] > 0])
-    campanhas_prejuizo = len(df[df["lucro"] < 0])
+    if not df.empty and df["roi"].nunique() > 0:
+        melhor             = df.loc[df["roi"].idxmax()]
+        pior               = df.loc[df["lucro"].idxmin()]
+        batimento_avg      = df["%_batimento_cliques"].mean()
+        campanhas_lucro    = len(df[df["lucro"] > 0])
+        campanhas_prejuizo = len(df[df["lucro"] < 0])
 
-    col_a, col_b = st.columns(2)
-    with col_a:
-        st.info(f"💡 **Escalar:** `{melhor['subid']}` tem ROI de **{melhor['roi']:.2%}** — sua melhor performance.")
-    with col_b:
-        if pior["lucro"] < 0:
-            st.warning(f"⚠️ **Revisar:** `{pior['subid']}` gerou prejuízo de **R$ {abs(pior['lucro']):.2f}**.")
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.info(f"💡 **Escalar:** `{melhor['subid']}` tem ROI de **{melhor['roi']:.2%}** — sua melhor performance.")
+        with col_b:
+            if pior["lucro"] < 0:
+                st.warning(f"⚠️ **Revisar:** `{pior['subid']}` gerou prejuízo de **R$ {abs(pior['lucro']):.2f}**.")
 
-    col_c, col_d = st.columns(2)
-    with col_c:
-        if batimento_avg < 75:
-            st.error(f"📉 **Funil fraco:** Batimento médio de **{batimento_avg:.1f}%**. Muitos cliques se perdem antes da Shopee.")
-        else:
-            st.success(f"✅ **Funil saudável:** Batimento médio de **{batimento_avg:.1f}%**.")
-    with col_d:
-        st.metric("Campanhas lucrativas", f"{campanhas_lucro}", delta=f"-{campanhas_prejuizo} em prejuízo")
+        col_c, col_d = st.columns(2)
+        with col_c:
+            if batimento_avg < 75:
+                st.error(f"📉 **Funil fraco:** Batimento médio de **{batimento_avg:.1f}%**. Muitos cliques se perdem antes da Shopee.")
+            else:
+                st.success(f"✅ **Funil saudável:** Batimento médio de **{batimento_avg:.1f}%**.")
+        with col_d:
+            st.metric("Campanhas lucrativas", f"{campanhas_lucro}", delta=f"-{campanhas_prejuizo} em prejuízo")
 
     st.divider()
 
