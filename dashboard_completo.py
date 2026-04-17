@@ -888,7 +888,148 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         st.divider()
 
     # =========================
-    # 5. ANÁLISE VISUAL (ÚLTIMO)
+    # 5. PAINEL DIÁRIO
+    # =========================
+    if not df_shopee_filtrado.empty and "_data" in df_shopee_filtrado.columns and not df_ads_raw.empty:
+        titulo("📅", "Painel Diário", cor="#f59e0b")
+
+        from datetime import datetime
+        import calendar
+
+        hoje = date.today()
+        ultimo_dia_mes = calendar.monthrange(hoje.year, hoje.month)[1]
+        dias_restantes = max(ultimo_dia_mes - hoje.day, 0)
+
+        # Agrupa por dia
+        fat_dia_raw = df_shopee_filtrado.copy()
+        fat_dia_raw["_data"] = pd.to_datetime(fat_dia_raw["_data"]).dt.date
+        fat_dia_agg = fat_dia_raw.groupby("_data", as_index=False).agg(
+            faturado=("_valor", "sum"),
+            comissao=("_comissao", "sum"),
+        ).sort_values("_data")
+
+        # Gasto por dia dos ads
+        if not df_ads_raw.empty and "_data" in df_ads_raw.columns:
+            gasto_dia = df_ads_raw.copy()
+            gasto_dia["_data"] = pd.to_datetime(gasto_dia["_data"]).dt.date
+            gasto_dia_agg = gasto_dia.groupby("_data", as_index=False).agg(invest=("gasto", "sum"))
+            fat_dia_agg = fat_dia_agg.merge(gasto_dia_agg, on="_data", how="left").fillna(0)
+        else:
+            fat_dia_agg["invest"] = 0
+
+        fat_dia_agg["lucro"]     = fat_dia_agg["faturado"] - fat_dia_agg["invest"]
+        fat_dia_agg["faturado_acum"] = fat_dia_agg["faturado"].cumsum()
+
+        total_faturado = fat_dia_agg["faturado"].sum()
+        total_invest   = fat_dia_agg["invest"].sum()
+        total_lucro    = fat_dia_agg["lucro"].sum()
+        media_diaria   = total_faturado / max(len(fat_dia_agg), 1)
+        projecao_mes   = media_diaria * ultimo_dia_mes
+        necessario_dia = max((meta_mensal - total_faturado) / max(dias_restantes, 1), 0)
+
+        # Cards do topo
+        pc1, pc2, pc3, pc4, pc5 = st.columns(5)
+        pc1.metric("📦 Faturado", f"R$ {total_faturado:,.2f}")
+        pc2.metric("📉 Invest Total", f"R$ {total_invest:,.2f}")
+        pc3.metric("📈 Lucro Acumulado", f"R$ {total_lucro:,.2f}")
+        pc4.metric("📆 Dias Restantes", f"{dias_restantes}")
+        pc5.metric("⚡ Necessário/dia", f"R$ {necessario_dia:,.2f}", help="Para bater a meta mensal")
+
+        # Projeção
+        st.markdown(f"""
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px 20px; margin:12px 0; display:flex; gap:0;">
+            <div style="flex:1; text-align:center; border-right:1px solid #e2e8f0; padding:0 16px;">
+                <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px;">Meta do mês</div>
+                <div style="font-size:16px; font-weight:700; color:#6366f1;">R$ {meta_mensal:,.2f}</div>
+            </div>
+            <div style="flex:1; text-align:center; border-right:1px solid #e2e8f0; padding:0 16px;">
+                <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px;">Projeção (ritmo atual)</div>
+                <div style="font-size:16px; font-weight:700; color:#d97706;">R$ {projecao_mes:,.2f}</div>
+            </div>
+            <div style="flex:1; text-align:center; border-right:1px solid #e2e8f0; padding:0 16px;">
+                <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px;">% da meta atingida</div>
+                <div style="font-size:16px; font-weight:700; color:#16a34a;">{min(total_faturado/meta_mensal*100, 100):.1f}%</div>
+            </div>
+            <div style="flex:1; text-align:center; padding:0 16px;">
+                <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px;">Média diária</div>
+                <div style="font-size:16px; font-weight:700; color:#0f172a;">R$ {media_diaria:,.2f}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Bônus (3 faixas baseadas na meta mensal)
+        meta_b1 = meta_mensal * 1.0
+        meta_b2 = meta_mensal * 1.25
+        meta_b3 = meta_mensal * 1.50
+        bon1 = meta_b1 * 0.01
+        bon2 = meta_b2 * 0.02
+        bon3 = meta_b3 * 0.03
+
+        b1, b2, b3 = st.columns(3)
+        with b1:
+            st.markdown(f"""<div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:14px 16px;">
+                <div style="font-size:10px; font-weight:700; color:#1d4ed8; text-transform:uppercase; letter-spacing:0.06em;">Bônus 1% · meta R$ {meta_b1:,.0f}</div>
+                <div style="font-size:11px; color:#3b82f6; margin:4px 0;">Faltam R$ {max(meta_b1-total_faturado,0):,.2f}</div>
+                <div style="font-size:20px; font-weight:800; color:#1d4ed8;">R$ {bon1:,.2f}</div>
+                <div style="font-size:10px; color:#93c5fd; margin-top:3px;">estimativa de bônus</div>
+            </div>""", unsafe_allow_html=True)
+        with b2:
+            st.markdown(f"""<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:14px 16px;">
+                <div style="font-size:10px; font-weight:700; color:#14532d; text-transform:uppercase; letter-spacing:0.06em;">Bônus 2% · meta R$ {meta_b2:,.0f}</div>
+                <div style="font-size:11px; color:#16a34a; margin:4px 0;">Faltam R$ {max(meta_b2-total_faturado,0):,.2f}</div>
+                <div style="font-size:20px; font-weight:800; color:#14532d;">R$ {bon2:,.2f}</div>
+                <div style="font-size:10px; color:#4ade80; margin-top:3px;">estimativa de bônus</div>
+            </div>""", unsafe_allow_html=True)
+        with b3:
+            st.markdown(f"""<div style="background:#fdf4ff; border:1px solid #e9d5ff; border-radius:12px; padding:14px 16px;">
+                <div style="font-size:10px; font-weight:700; color:#6b21a8; text-transform:uppercase; letter-spacing:0.06em;">Bônus 3% · meta R$ {meta_b3:,.0f}</div>
+                <div style="font-size:11px; color:#9333ea; margin:4px 0;">Faltam R$ {max(meta_b3-total_faturado,0):,.2f}</div>
+                <div style="font-size:20px; font-weight:800; color:#6b21a8;">R$ {bon3:,.2f}</div>
+                <div style="font-size:10px; color:#c084fc; margin-top:3px;">estimativa de bônus</div>
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+
+        # Tabela diária
+        df_tabela_dia = fat_dia_agg.copy()
+        df_tabela_dia["_data"]       = pd.to_datetime(df_tabela_dia["_data"]).dt.strftime("%d/%m/%Y")
+        df_tabela_dia["invest"]      = df_tabela_dia["invest"].apply(lambda x: f"R$ {x:,.2f}")
+        df_tabela_dia["faturado"]    = df_tabela_dia["faturado"].apply(lambda x: f"R$ {x:,.2f}")
+        df_tabela_dia["lucro_str"]   = fat_dia_agg["lucro"].apply(lambda x: f"R$ {x:,.2f}")
+        df_tabela_dia["faturado_acum"] = df_tabela_dia["faturado_acum"].apply(lambda x: f"R$ {x:,.2f}")
+
+        # Linha de total
+        total_row_dia = {
+            "_data": "TOTAL",
+            "invest": f"R$ {total_invest:,.2f}",
+            "faturado": f"R$ {total_faturado:,.2f}",
+            "lucro_str": f"R$ {total_lucro:,.2f}",
+            "faturado_acum": "—",
+            "comissao": 0
+        }
+        df_exibe = df_tabela_dia[["_data","invest","faturado","lucro_str","faturado_acum"]].copy()
+        df_exibe.columns = ["Dia", "Invest", "Faturado", "Lucro", "Faturado Acum."]
+        total_df = pd.DataFrame([{"Dia":"TOTAL","Invest":f"R$ {total_invest:,.2f}","Faturado":f"R$ {total_faturado:,.2f}","Lucro":f"R$ {total_lucro:,.2f}","Faturado Acum.":"—"}])
+        df_exibe = pd.concat([df_exibe, total_df], ignore_index=True)
+
+        def colorir_dia(df):
+            styles = pd.DataFrame("", index=df.index, columns=df.columns)
+            for i, row in df.iterrows():
+                if row["Dia"] == "TOTAL":
+                    for col in df.columns:
+                        styles.at[i, col] = "font-weight:bold; background-color:#f1f5f9;"
+                    continue
+                try:
+                    v = float(str(row["Lucro"]).replace("R$","").replace(",","").strip())
+                    styles.at[i, "Lucro"] = "color:#16a34a; font-weight:bold;" if v >= 0 else "color:#dc2626; font-weight:bold;"
+                except: pass
+            return styles
+
+        st.dataframe(df_exibe.style.apply(colorir_dia, axis=None), use_container_width=True, hide_index=True)
+        st.divider()
+
+    # =========================
+    # 6. ANÁLISE VISUAL (ÚLTIMO)
     # =========================
     titulo("📈", "Análise Visual", cor="#10b981")
     tab1, tab2 = st.tabs(["ROI por Campanha", "📅 Faturamento por Dia"])
