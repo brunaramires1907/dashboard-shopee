@@ -494,9 +494,11 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
     # Filtra ads por data se disponível
     if not df_ads_raw.empty and "_data" in df_ads_raw.columns:
         df_ads_raw["_data"] = pd.to_datetime(df_ads_raw["_data"], errors="coerce")
+        data_ini_dt = pd.Timestamp(data_ini)
+        data_fim_dt = pd.Timestamp(data_fim)
         mask_ads = (
-            (df_ads_raw["_data"].dt.date >= data_ini) &
-            (df_ads_raw["_data"].dt.date <= data_fim)
+            (df_ads_raw["_data"] >= data_ini_dt) &
+            (df_ads_raw["_data"] <= data_fim_dt)
         )
         ads_filtrado = df_ads_raw[mask_ads].groupby("subid", as_index=False).agg(
             gasto=("gasto", "sum"),
