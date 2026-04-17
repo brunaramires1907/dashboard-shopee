@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 # =========================
 # CONFIGURAÇÃO E DESIGN
 # =========================
-st.set_page_config(page_title="Dashboard Shopee + Ads", layout="wide", page_icon="📊")
+st.set_page_config(page_title="AfiliaMetrics", layout="wide", page_icon="📊")
 
 st.markdown("""
     <style>
@@ -117,8 +117,28 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📊 Dashboard Shopee + Pinterest + Meta")
-st.caption(f"Atualizado em: {date.today().strftime('%d/%m/%Y')}")
+st.markdown(f"""
+<div style="
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+    border-radius: 16px;
+    padding: 28px 36px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 32px rgba(99,102,241,0.25);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+">
+    <div style="font-size: 3rem;">📊</div>
+    <div>
+        <div style="font-size: 2rem; font-weight: 800; color: white; letter-spacing: -0.5px; font-family: Inter, sans-serif;">
+            Afilia<span style="color: #e0e7ff;">Metrics</span>
+        </div>
+        <div style="font-size: 0.95rem; color: rgba(255,255,255,0.75); margin-top: 4px; font-family: Inter, sans-serif;">
+            Dashboard de Afiliados · Shopee + Pinterest + Meta &nbsp;·&nbsp; Atualizado em {date.today().strftime('%d/%m/%Y')}
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # =========================
 # SIDEBAR
