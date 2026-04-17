@@ -132,8 +132,19 @@ st.markdown("""
         border-radius: 8px !important;
     }
 
-    /* Caption / subtexto */
-    .stCaption { color: #94a3b8 !important; }
+    /* Checkboxes como pills coloridas */
+    [data-testid="stCheckbox"]:has(input#filtro_prej) label,
+    [data-testid="stCheckbox"]:has(input#filtro_lucro) label {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 99px !important;
+        padding: 4px 12px !important;
+        font-size: 0.8rem !important;
+        font-weight: 500 !important;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    [data-testid="stCheckbox"] input[type="checkbox"] { display: none !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -625,12 +636,23 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     # 1. DETALHAMENTO POR SubID (PRIMEIRO)
     # =========================
     titulo("📊", "Detalhamento por SubID")
+    st.markdown("""<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px 18px; margin-bottom:12px;">
+    """, unsafe_allow_html=True)
     col_ord, col_filt = st.columns([2, 1])
     with col_ord:
-        ordenar_por = st.selectbox("Ordenar por:", ["roi", "lucro", "faturamento", "comissoes", "gasto", "total_vendas", "%_batimento_cliques"])
+        ordenar_por_label = st.selectbox("Ordenar por:", ["ROI", "Lucro", "Faturamento", "Comissão", "Gasto", "Total Vendas", "% Batimento"])
+        ordenar_por_map = {
+            "ROI": "roi", "Lucro": "lucro", "Faturamento": "faturamento",
+            "Comissão": "comissoes", "Gasto": "gasto",
+            "Total Vendas": "total_vendas", "% Batimento": "%_batimento_cliques"
+        }
+        ordenar_por = ordenar_por_map[ordenar_por_label]
     with col_filt:
-        mostrar_apenas_prejuizo = st.toggle("🔴 Só prejuízo")
-        mostrar_apenas_lucro    = st.toggle("🟢 Só lucro")
+        st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+        st.markdown("<span style='font-size:0.78rem; color:#64748b; font-weight:500;'>Filtrar:</span>", unsafe_allow_html=True)
+        mostrar_apenas_prejuizo = st.checkbox("🔴 Só prejuízo", key="filtro_prej")
+        mostrar_apenas_lucro    = st.checkbox("🟢 Só lucro",    key="filtro_lucro")
+    st.markdown("</div>", unsafe_allow_html=True)
 
     df_tabela = df.copy()
     if mostrar_apenas_prejuizo:
