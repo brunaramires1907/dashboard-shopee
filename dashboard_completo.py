@@ -738,23 +738,35 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
             return f"{'▲' if d >= 0 else '▼'} {abs(d):.1f}% vs B"
 
         cc1, cc2, cc3 = st.columns(3)
-        cc1.metric("🧾 Faturamento A vs B", f"R$ {fat_a:,.2f}", delta=delta_str(fat_a, fat_b))
-        cc2.metric("💰 Comissão A vs B",    f"R$ {com_a:,.2f}", delta=delta_str(com_a, com_b))
-        cc3.metric("🛒 Vendas A vs B",      f"{ven_a}",          delta=delta_str(ven_a, ven_b))
-        df_comp = vendas[["subid", "faturamento", "comissoes"]].rename(columns={"faturamento": "Fat A", "comissoes": "Com A"})
-        df_comp = df_comp.merge(
-            vendas_b[["subid", "faturamento", "comissoes"]].rename(columns={"faturamento": "Fat B", "comissoes": "Com B"}),
-            on="subid", how="outer"
-        ).fillna(0)
-        fig_comp = go.Figure()
-        fig_comp.add_trace(go.Bar(name="Faturamento A", x=df_comp["subid"], y=df_comp["Fat A"], marker_color="#6366f1"))
-        fig_comp.add_trace(go.Bar(name="Faturamento B", x=df_comp["subid"], y=df_comp["Fat B"], marker_color="#a5b4fc"))
-        fig_comp.update_layout(
-            barmode="group", title="Faturamento por SubID — Período A vs B",
-            paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
-            font_color="#1e293b", font_family="Inter"
+        cc1.metric("🧾 Faturamento", f"R$ {fat_a:,.2f}", delta=delta_str(fat_a, fat_b))
+        cc2.metric("💰 Comissão",    f"R$ {com_a:,.2f}", delta=delta_str(com_a, com_b))
+        cc3.metric("🛒 Vendas",      f"{ven_a}",          delta=delta_str(ven_a, ven_b))
+
+        st.markdown(f"""
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 16px; margin:12px 0; font-size:0.82rem; color:#64748b; font-family:Inter,sans-serif;">
+            📅 <b>Período A:</b> {data_ini.strftime('%d/%m/%Y')} → {data_fim.strftime('%d/%m/%Y')}
+            &nbsp;&nbsp;|&nbsp;&nbsp;
+            📅 <b>Período B:</b> {data_ini_b.strftime('%d/%m/%Y')} → {data_fim_b.strftime('%d/%m/%Y')}
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Top 10 SubIDs por faturamento no período A
+        df_comp = vendas[["subid", "faturamento", "comissoes"]].rename(
+            columns={"faturamento": "Fat A (R$)", "comissoes": "Com A (R$)"}
+        ).merge(
+            vendas_b[["subid", "faturamento", "comissoes"]].rename(
+                columns={"faturamento": "Fat B (R$)", "comissoes": "Com B (R$)"}
+            ), on="subid", how="outer"
+        ).fillna(0).nlargest(10, "Fat A (R$)")
+
+        df_comp["Δ Fat (%)"] = df_comp.apply(
+            lambda r: f"{'▲' if r['Fat A (R$)'] >= r['Fat B (R$)'] else '▼'} {abs((r['Fat A (R$)']-r['Fat B (R$)'])/(r['Fat B (R$)']+0.01)*100):.1f}%", axis=1
         )
-        st.plotly_chart(fig_comp, use_container_width=True)
+        for col in ["Fat A (R$)", "Fat B (R$)", "Com A (R$)", "Com B (R$)"]:
+            df_comp[col] = df_comp[col].apply(lambda x: f"R$ {x:,.2f}")
+
+        st.dataframe(df_comp[["subid","Fat A (R$)","Fat B (R$)","Δ Fat (%)","Com A (R$)","Com B (R$)"]].rename(
+            columns={"subid":"SubID"}), use_container_width=True, hide_index=True)
         st.divider()
 
     # =========================
