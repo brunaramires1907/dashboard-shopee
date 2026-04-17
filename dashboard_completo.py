@@ -341,6 +341,92 @@ if lista_vendas:
 if lista_shopee_raw:
     df_shopee_raw = pd.concat(lista_shopee_raw, ignore_index=True)
 
+# =========================
+# FILTROS GLOBAIS
+# =========================
+if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
+    df_shopee_raw["_data"] = pd.to_datetime(df_shopee_raw["_data"], errors="coerce")
+    data_min = df_shopee_raw["_data"].min().date()
+    data_max = df_shopee_raw["_data"].max().date()
+
+    st.sidebar.divider()
+    st.sidebar.header("🔍 Filtros")
+
+    # --- Filtro de período ---
+    col_d1, col_d2 = st.sidebar.columns(2)
+    with col_d1:
+        data_ini = st.date_input("De:", value=data_min, min_value=data_min, max_value=data_max)
+    with col_d2:
+        data_fim = st.date_input("Até:", value=data_max, min_value=data_min, max_value=data_max)
+
+    # --- Filtro por SubID ---
+    subids_todos = sorted(df_shopee_raw["subid"].dropna().unique().tolist())
+    subids_sel   = st.sidebar.multiselect("SubID(s):", subids_todos, default=subids_todos)
+
+    # --- Filtro por status de venda ---
+    tipo_venda = st.sidebar.radio(
+        "Tipo de venda:",
+        ["Todas", "Somente Diretas", "Somente Indiretas"],
+        horizontal=False
+    )
+
+    # --- Comparativo de períodos ---
+    comparar = st.sidebar.checkbox("📊 Comparar dois períodos")
+    if comparar:
+        st.sidebar.markdown("**Período B (comparação)**")
+        col_c1, col_c2 = st.sidebar.columns(2)
+        with col_c1:
+            data_ini_b = st.date_input("De (B):", value=data_min, min_value=data_min, max_value=data_max, key="db1")
+        with col_c2:
+            data_fim_b = st.date_input("Até (B):", value=data_max, min_value=data_min, max_value=data_max, key="db2")
+
+    # --- Aplicar filtros no raw ---
+    mask = (
+        (df_shopee_raw["_data"].dt.date >= data_ini) &
+        (df_shopee_raw["_data"].dt.date <= data_fim) &
+        (df_shopee_raw["subid"].isin(subids_sel))
+    )
+    if tipo_venda == "Somente Diretas":
+        mask &= df_shopee_raw["_direta"] == 1
+    elif tipo_venda == "Somente Indiretas":
+        mask &= df_shopee_raw["_indireta"] == 1
+
+    df_shopee_filtrado = df_shopee_raw[mask].copy()
+
+    # Recalcula faturamento bruto com filtro
+    faturamento_bruto_total = df_shopee_filtrado["_valor"].sum()
+
+    # Recalcula vendas agregadas com filtro
+    if not df_shopee_filtrado.empty:
+        vendas = df_shopee_filtrado.groupby("subid", as_index=False).agg(
+            comissoes=("_comissao", "sum"),
+            faturamento=("_valor", "sum"),
+            vendas_diretas=("_direta", "sum"),
+            vendas_indiretas=("_indireta", "sum"),
+            qtd_itens=("_qtd", "sum")
+        )
+    else:
+        vendas = pd.DataFrame(columns=["subid", "comissoes", "faturamento", "vendas_diretas", "vendas_indiretas", "qtd_itens"])
+
+    # Período B para comparativo
+    if comparar:
+        mask_b = (
+            (df_shopee_raw["_data"].dt.date >= data_ini_b) &
+            (df_shopee_raw["_data"].dt.date <= data_fim_b) &
+            (df_shopee_raw["subid"].isin(subids_sel))
+        )
+        df_raw_b = df_shopee_raw[mask_b].copy()
+        vendas_b = df_raw_b.groupby("subid", as_index=False).agg(
+            comissoes=("_comissao", "sum"),
+            faturamento=("_valor", "sum"),
+            vendas_diretas=("_direta", "sum"),
+            vendas_indiretas=("_indireta", "sum"),
+            qtd_itens=("_qtd", "sum")
+        ) if not df_raw_b.empty else pd.DataFrame()
+else:
+    df_shopee_filtrado = df_shopee_raw.copy()
+    comparar = False
+
 # --- SHOPEE CLIQUES ---
 lista_cliques = []
 if shopee_cliques_files:
@@ -503,12 +589,11 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
             st.info("Carregue os arquivos de cliques da Shopee para ver o funil.")
 
     with tab4:
-        if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
-            # Filtro por SubID
-            subids_disponiveis = ["Todos"] + sorted(df_shopee_raw["subid"].dropna().unique().tolist())
+        if not df_shopee_filtrado.empty and "_data" in df_shopee_filtrado.columns:
+            subids_disponiveis = ["Todos"] + sorted(df_shopee_filtrado["subid"].dropna().unique().tolist())
             subid_sel = st.selectbox("Filtrar por SubID:", subids_disponiveis, key="fat_dia_subid")
 
-            raw_filtrado = df_shopee_raw if subid_sel == "Todos" else df_shopee_raw[df_shopee_raw["subid"] == subid_sel]
+            raw_filtrado = df_shopee_filtrado if subid_sel == "Todos" else df_shopee_filtrado[df_shopee_filtrado["subid"] == subid_sel]
 
             fat_dia = raw_filtrado.groupby("_data", as_index=False).agg(
                 faturamento=("_valor", "sum"),
@@ -550,8 +635,48 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     st.divider()
 
     # =========================
-    # TABELA DETALHADA
+    # COMPARATIVO DE PERÍODOS
     # =========================
+    if comparar and not df_shopee_raw.empty and not vendas_b.empty:
+        st.subheader("📊 Comparativo de Períodos")
+        st.caption(f"**Período A:** {data_ini} → {data_fim}  |  **Período B:** {data_ini_b} → {data_fim_b}")
+
+        fat_a = df_shopee_filtrado["_valor"].sum()
+        com_a = df_shopee_filtrado["_comissao"].sum()
+        ven_a = len(df_shopee_filtrado)
+
+        fat_b = df_raw_b["_valor"].sum()
+        com_b = df_raw_b["_comissao"].sum()
+        ven_b = len(df_raw_b)
+
+        def delta_str(a, b):
+            if b == 0: return ""
+            d = ((a - b) / b) * 100
+            return f"{'▲' if d >= 0 else '▼'} {abs(d):.1f}% vs B"
+
+        cc1, cc2, cc3 = st.columns(3)
+        cc1.metric("🧾 Faturamento A vs B", f"R$ {fat_a:,.2f}", delta=delta_str(fat_a, fat_b))
+        cc2.metric("💰 Comissão A vs B",    f"R$ {com_a:,.2f}", delta=delta_str(com_a, com_b))
+        cc3.metric("🛒 Vendas A vs B",      f"{ven_a}",          delta=delta_str(ven_a, ven_b))
+
+        # Gráfico comparativo por SubID
+        df_comp = vendas[["subid", "faturamento", "comissoes"]].rename(columns={"faturamento": "Fat A", "comissoes": "Com A"})
+        df_comp = df_comp.merge(
+            vendas_b[["subid", "faturamento", "comissoes"]].rename(columns={"faturamento": "Fat B", "comissoes": "Com B"}),
+            on="subid", how="outer"
+        ).fillna(0)
+
+        fig_comp = go.Figure()
+        fig_comp.add_trace(go.Bar(name=f"Faturamento A", x=df_comp["subid"], y=df_comp["Fat A"], marker_color="#6366f1"))
+        fig_comp.add_trace(go.Bar(name=f"Faturamento B", x=df_comp["subid"], y=df_comp["Fat B"], marker_color="#a5b4fc"))
+        fig_comp.update_layout(
+            barmode="group", title="Faturamento por SubID — Período A vs B",
+            paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
+            font_color="#1e293b", font_family="Inter"
+        )
+        st.plotly_chart(fig_comp, use_container_width=True)
+
+    st.divider()
     st.subheader("📊 Detalhamento por SubID")
 
     col_ord, col_filt = st.columns([2, 1])
