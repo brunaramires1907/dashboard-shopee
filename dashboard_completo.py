@@ -36,20 +36,21 @@ st.markdown("""
 
     /* Cards de Métrica — estilo SaaS moderno */
     div[data-testid="metric-container"] {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        padding: 20px 24px;
-        border-radius: 14px;
-        box-shadow: 0 1px 4px rgba(15,23,42,0.07);
-        transition: box-shadow 0.2s, transform 0.2s;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        padding: 16px 20px !important;
+        border-radius: 12px !important;
+        box-shadow: 0 1px 4px rgba(15,23,42,0.07) !important;
+        transition: box-shadow 0.2s, transform 0.2s !important;
+        outline: none !important;
     }
     div[data-testid="metric-container"]:hover {
-        box-shadow: 0 4px 16px rgba(15,23,42,0.12);
-        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(15,23,42,0.12) !important;
+        transform: translateY(-2px) !important;
     }
-    [data-testid="stMetricValue"]  { color: #6366f1 !important; font-size: 1.1rem !important; font-weight: 700 !important; }
-    [data-testid="stMetricLabel"]  { color: #64748b !important; font-size: 0.82rem !important; font-weight: 500 !important; text-transform: uppercase; letter-spacing: 0.05em; }
-    [data-testid="stMetricDelta"]  { font-size: 0.85rem !important; }
+    [data-testid="stMetricValue"]  { color: #6366f1 !important; font-size: 1.05rem !important; font-weight: 700 !important; }
+    [data-testid="stMetricLabel"]  { color: #64748b !important; font-size: 0.78rem !important; font-weight: 500 !important; text-transform: uppercase !important; letter-spacing: 0.05em !important; }
+    [data-testid="stMetricDelta"]  { font-size: 0.78rem !important; }
 
     /* Tags do multiselect — roxo no lugar do vermelho */
     span[data-baseweb="tag"] {
@@ -138,17 +139,34 @@ st.markdown("""
 
 st.markdown(f"""
 <div style="
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    background: #6366f1;
     border-radius: 16px;
-    padding: 32px 40px;
-    margin-bottom: 28px;
-    box-shadow: 0 4px 24px rgba(99,102,241,0.2);
+    padding: 24px 32px;
+    margin-bottom: 24px;
 ">
-    <div style="font-size: 2.2rem; font-weight: 800; color: white; letter-spacing: -1px; font-family: Inter, sans-serif; line-height: 1.1;">
-        Afilia<span style="color: #c4b5fd;">Metrics</span>
-    </div>
-    <div style="font-size: 0.88rem; color: rgba(255,255,255,0.65); margin-top: 8px; font-family: Inter, sans-serif; letter-spacing: 0.3px;">
-        Dashboard de Afiliados &nbsp;·&nbsp; Shopee + Pinterest + Meta &nbsp;·&nbsp; {date.today().strftime('%d/%m/%Y')}
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <div style="font-size:2rem; font-weight:800; color:white; letter-spacing:-1px; font-family:Inter,sans-serif; line-height:1.1;">
+                Afilia<span style="color:#c4b5fd;">Metrics</span>
+            </div>
+            <div style="font-size:0.82rem; color:rgba(255,255,255,0.6); margin-top:6px; font-family:Inter,sans-serif;">
+                Dashboard de Afiliados &nbsp;·&nbsp; {date.today().strftime('%d/%m/%Y')}
+            </div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <div style="background:white; border-radius:10px; padding:6px 10px; display:flex; align-items:center; gap:6px;">
+                <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#E60023" d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg>
+                <span style="font-size:11px; font-weight:600; color:#E60023;">Pinterest</span>
+            </div>
+            <div style="background:white; border-radius:10px; padding:6px 10px; display:flex; align-items:center; gap:6px;">
+                <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#0081FB" d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76 1.012 1.144 1.626 2.663 1.626.633 0 1.183-.08 1.72-.293a4.96 4.96 0 0 0 1.303-.711 10.9 10.9 0 0 0 1.07-.925c.708-.803 1.498-1.968 2.22-3.51l.057-.131c.417-.974.853-2.102 1.168-3.243.15-.56.267-1.123.267-1.62 0-2.002-.52-3.36-1.546-4.26-.71-.623-1.688-.919-2.889-.919-1.492 0-2.808.615-3.98 1.611C9.893 4.859 8.419 4.03 6.915 4.03zm8.109 1.01c.91 0 1.619.25 2.127.748.647.633.966 1.663.966 3.148 0 .392-.093.884-.228 1.392-.282 1.055-.696 2.12-1.086 3.044l-.069.157c-.672 1.441-1.397 2.519-2.009 3.215a9.553 9.553 0 0 1-.895.773c-.43.315-.873.53-1.314.63-.291.066-.59.106-.905.106-1.215 0-1.417-.693-2.188-1.717-.592 1.009-1.16 1.718-1.854 2.196-.88.607-1.744.84-2.796.84-1.345 0-2.066-.55-2.54-1.357a4.28 4.28 0 0 1-.299-.611 5.59 5.59 0 0 1-.213-.706A8.963 8.963 0 0 1 1 14.449c0-2.367.65-4.8 1.883-6.588C3.963 6.176 5.341 5.04 6.915 5.04c1.18 0 2.369.61 3.43 1.68l.247.248.247-.248c1.26-1.268 2.538-1.68 3.185-1.68z"/></svg>
+                <span style="font-size:11px; font-weight:600; color:#0081FB;">Meta</span>
+            </div>
+            <div style="background:white; border-radius:10px; padding:6px 10px; display:flex; align-items:center; gap:6px;">
+                <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#EE4D2D" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/></svg>
+                <span style="font-size:11px; font-weight:600; color:#EE4D2D;">Shopee</span>
+            </div>
+        </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -180,16 +198,20 @@ shopee_cliques_files  = st.sidebar.file_uploader("👆 Shopee – Cliques (CSV)"
 
 # Status dos uploads
 st.sidebar.markdown("**📋 Status dos arquivos**")
-def status_badge(files, nome):
+def status_badge(files, nome, icone_svg):
     if files:
-        st.sidebar.markdown(f'<span style="color:#16a34a; font-size:0.82rem;">✅ {nome} — {len(files)} arquivo(s)</span>', unsafe_allow_html=True)
+        st.sidebar.markdown(f'<div style="display:flex;align-items:center;gap:6px;margin:3px 0;">{icone_svg}<span style="color:#16a34a; font-size:0.82rem;">✅ {nome} — {len(files)} arquivo(s)</span></div>', unsafe_allow_html=True)
     else:
-        st.sidebar.markdown(f'<span style="color:#94a3b8; font-size:0.82rem;">⏳ {nome} — não importado</span>', unsafe_allow_html=True)
+        st.sidebar.markdown(f'<div style="display:flex;align-items:center;gap:6px;margin:3px 0;">{icone_svg}<span style="color:#94a3b8; font-size:0.82rem;">⏳ {nome} — não importado</span></div>', unsafe_allow_html=True)
 
-status_badge(pinterest_files,       "Pinterest")
-status_badge(meta_files,            "Meta Ads")
-status_badge(shopee_comissao_files, "Shopee Comissões")
-status_badge(shopee_cliques_files,  "Shopee Cliques")
+pin_svg = '<svg width="14" height="14" viewBox="0 0 24 24"><path fill="#E60023" d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg>'
+meta_svg = '<svg width="14" height="14" viewBox="0 0 24 24"><path fill="#0081FB" d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76 1.012 1.144 1.626 2.663 1.626.633 0 1.183-.08 1.72-.293a4.96 4.96 0 0 0 1.303-.711 10.9 10.9 0 0 0 1.07-.925c.708-.803 1.498-1.968 2.22-3.51l.057-.131c.417-.974.853-2.102 1.168-3.243.15-.56.267-1.123.267-1.62 0-2.002-.52-3.36-1.546-4.26-.71-.623-1.688-.919-2.889-.919-1.492 0-2.808.615-3.98 1.611C9.893 4.859 8.419 4.03 6.915 4.03z"/></svg>'
+shp_svg = '<svg width="14" height="14" viewBox="0 0 24 24"><path fill="#EE4D2D" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/></svg>'
+
+status_badge(pinterest_files,       "Pinterest",          pin_svg)
+status_badge(meta_files,            "Meta Ads",           meta_svg)
+status_badge(shopee_comissao_files, "Shopee Comissões",   shp_svg)
+status_badge(shopee_cliques_files,  "Shopee Cliques",     shp_svg)
 
 # =========================
 # FUNÇÕES UTILITÁRIAS
@@ -594,14 +616,14 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     st.success("✅ Análise gerada com sucesso!")
 
     c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
-    c1.metric("💰 Comissão",    formatar_valor(total_comissao))
-    c2.metric("🧾 Fat. Bruto",  formatar_valor(faturamento_bruto_total))
-    c3.metric("📉 Gasto",       formatar_valor(total_gasto))
-    c4.metric("📈 Lucro",       formatar_valor(total_lucro), delta=f"{'▲' if total_lucro >= 0 else '▼'} {formatar_valor(abs(total_lucro))}")
-    c5.metric("🚀 ROI Geral",   f"{total_roi:.2%}")
+    c1.metric("Comissão",    formatar_valor(total_comissao))
+    c2.metric("Fat. Bruto",  formatar_valor(faturamento_bruto_total))
+    c3.metric("Gasto",       formatar_valor(total_gasto))
+    c4.metric("Lucro",       formatar_valor(total_lucro), delta=f"{'▲' if total_lucro >= 0 else '▼'} {formatar_valor(abs(total_lucro))}")
+    c5.metric("ROI Geral",   f"{total_roi:.2%}")
     total_vendas_geral = int(df["total_vendas"].sum())
-    c6.metric("🛒 Vendas",      f"{total_vendas_geral}", delta=f"{int(df['vendas_diretas'].sum())}D / {int(df['vendas_indiretas'].sum())}I")
-    c7.metric("🎯 Ticket Médio", formatar_valor(ticket_medio_geral))
+    c6.metric("Vendas",      f"{total_vendas_geral}", delta=f"{int(df['vendas_diretas'].sum())}D / {int(df['vendas_indiretas'].sum())}I")
+    c7.metric("Ticket Médio", formatar_valor(ticket_medio_geral))
 
     # Progresso da Meta
     percentual_meta = min(faturamento_bruto_total / meta_mensal, 1.0) if meta_mensal else 0
@@ -753,29 +775,34 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
             comissao_total=("_comissao", "sum")
         ).sort_values("vendas_brutas", ascending=False)
 
-        # Linha de total
-        total_canal = pd.DataFrame([{
-            "_canal":        "TOTAL",
-            "pedidos":       canal_agg["pedidos"].sum() if "pedidos" in canal_agg.columns else 0,
-            "vendas_brutas": canal_agg["vendas_brutas"].sum() if "vendas_brutas" in canal_agg.columns else 0,
-            "comissao_total":canal_agg["comissao_total"].sum() if "comissao_total" in canal_agg.columns else 0,
-        }])
-        canal_agg = pd.concat([canal_agg, total_canal], ignore_index=True)
+        # Ícones e cores por canal
+        canal_config = {
+            "Pinterest":    {"bg": "#fff0f0", "cor": "#E60023", "svg": '<svg width="20" height="20" viewBox="0 0 24 24"><path fill="#E60023" d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg>'},
+            "Instagram":    {"bg": "#fff0f8", "cor": "#C13584", "svg": '<svg width="20" height="20" viewBox="0 0 24 24"><path fill="#C13584" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>'},
+            "Websites":     {"bg": "#f0fdf4", "cor": "#16a34a", "svg": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>'},
+            "Others":       {"bg": "#f8fafc", "cor": "#64748b", "svg": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>'},
+            "Code Sharing": {"bg": "#eff6ff", "cor": "#2563eb", "svg": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>'},
+            "EdgeBrowser":  {"bg": "#eff6ff", "cor": "#0ea5e9", "svg": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>'},
+        }
 
-        canal_agg.columns = ["Canal", "Pedidos", "Vendas Brutas (R$)", "Comissão Total (R$)"]
-        canal_agg["Vendas Brutas (R$)"]  = canal_agg["Vendas Brutas (R$)"].apply(lambda x: f"R$ {float(x):,.2f}")
-        canal_agg["Comissão Total (R$)"] = canal_agg["Comissão Total (R$)"].apply(lambda x: f"R$ {float(x):,.2f}")
-        canal_agg["Pedidos"]             = canal_agg["Pedidos"].apply(lambda x: f"{int(float(x))} pedidos")
-
-        def colorir_canal(df):
-            styles = pd.DataFrame("", index=df.index, columns=df.columns)
-            for i, row in df.iterrows():
-                if row["Canal"] == "TOTAL":
-                    for col in df.columns:
-                        styles.at[i, col] = "font-weight:bold; background-color:#f1f5f9;"
-            return styles
-
-        st.dataframe(canal_agg.style.apply(colorir_canal, axis=None), use_container_width=True, hide_index=True)
+        # Renderiza cards por canal
+        cols_canal = st.columns(len(canal_agg))
+        for idx, (_, row) in enumerate(canal_agg.iterrows()):
+            nome = str(row["_canal"]) if "_canal" in canal_agg.columns else str(row.iloc[0])
+            cfg = canal_config.get(nome, {"bg": "#f8fafc", "cor": "#64748b", "svg": "📦"})
+            fat = f"R$ {row['vendas_brutas']:,.2f}"
+            com = f"R$ {row['comissao_total']:,.2f}"
+            ped = int(row['pedidos'])
+            with cols_canal[idx]:
+                st.markdown(f"""
+                <div style="background:{cfg['bg']}; border:1px solid #e2e8f0; border-radius:12px; padding:14px 16px; text-align:center;">
+                    <div style="display:flex; justify-content:center; margin-bottom:8px;">{cfg['svg']}</div>
+                    <div style="font-size:12px; font-weight:700; color:{cfg['cor']}; margin-bottom:6px;">{nome}</div>
+                    <div style="font-size:15px; font-weight:700; color:#0f172a;">{fat}</div>
+                    <div style="font-size:11px; color:#64748b; margin-top:2px;">{com} comissão</div>
+                    <div style="font-size:11px; color:#94a3b8; margin-top:2px;">{ped} pedidos</div>
+                </div>
+                """, unsafe_allow_html=True)
         st.divider()
 
     # =========================
@@ -787,17 +814,31 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         pior               = df.loc[df["lucro"].idxmin()]
         campanhas_lucro    = len(df[df["lucro"] > 0])
         campanhas_prejuizo = len(df[df["lucro"] < 0])
-        col_a, col_b = st.columns(2)
+
+        col_a, col_b, col_c, col_d = st.columns(4)
         with col_a:
-            st.info(f"💡 **Escalar:** `{melhor['subid']}` tem ROI de **{melhor['roi']:.2%}** — sua melhor performance.")
+            st.markdown(f"""<div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:14px 16px;">
+                <div style="font-size:10px; font-weight:700; color:#1d4ed8; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">💡 Escalar</div>
+                <div style="font-size:12px; color:#1e3a5f; line-height:1.5;"><strong>{melhor['subid']}</strong> tem ROI de <strong>{melhor['roi']:.0%}</strong> — sua melhor performance.</div>
+            </div>""", unsafe_allow_html=True)
         with col_b:
             if pior["lucro"] < 0:
-                st.warning(f"⚠️ **Revisar:** `{pior['subid']}` gerou prejuízo de **R$ {abs(pior['lucro']):.2f}**.")
-        col_c, col_d = st.columns(2)
+                st.markdown(f"""<div style="background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:14px 16px;">
+                    <div style="font-size:10px; font-weight:700; color:#92400e; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">⚠️ Revisar</div>
+                    <div style="font-size:12px; color:#78350f; line-height:1.5;"><strong>{pior['subid']}</strong> gerou prejuízo de <strong>R$ {abs(pior['lucro']):.2f}</strong>. Avalie o criativo.</div>
+                </div>""", unsafe_allow_html=True)
         with col_c:
-            st.metric("✅ Campanhas lucrativas", f"{campanhas_lucro}")
+            st.markdown(f"""<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:14px 16px;">
+                <div style="font-size:10px; font-weight:700; color:#14532d; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">✅ Lucrativas</div>
+                <div style="font-size:22px; font-weight:800; color:#16a34a;">{campanhas_lucro}</div>
+                <div style="font-size:11px; color:#4ade80;">campanhas no positivo</div>
+            </div>""", unsafe_allow_html=True)
         with col_d:
-            st.metric("🚨 Em prejuízo", f"{campanhas_prejuizo}")
+            st.markdown(f"""<div style="background:#fef2f2; border:1px solid #fecaca; border-radius:12px; padding:14px 16px;">
+                <div style="font-size:10px; font-weight:700; color:#991b1b; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">🚨 Em Prejuízo</div>
+                <div style="font-size:22px; font-weight:800; color:#dc2626;">{campanhas_prejuizo}</div>
+                <div style="font-size:11px; color:#f87171;">campanhas no negativo</div>
+            </div>""", unsafe_allow_html=True)
 
     st.divider()
 
