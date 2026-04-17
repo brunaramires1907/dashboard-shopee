@@ -119,23 +119,17 @@ st.markdown("""
 
 st.markdown(f"""
 <div style="
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
     border-radius: 16px;
-    padding: 28px 36px;
-    margin-bottom: 24px;
-    box-shadow: 0 8px 32px rgba(99,102,241,0.25);
-    display: flex;
-    align-items: center;
-    gap: 20px;
+    padding: 32px 40px;
+    margin-bottom: 28px;
+    box-shadow: 0 4px 24px rgba(99,102,241,0.2);
 ">
-    <div style="font-size: 3rem;">📊</div>
-    <div>
-        <div style="font-size: 2rem; font-weight: 800; color: white; letter-spacing: -0.5px; font-family: Inter, sans-serif;">
-            Afilia<span style="color: #e0e7ff;">Metrics</span>
-        </div>
-        <div style="font-size: 0.95rem; color: rgba(255,255,255,0.75); margin-top: 4px; font-family: Inter, sans-serif;">
-            Dashboard de Afiliados · Shopee + Pinterest + Meta &nbsp;·&nbsp; Atualizado em {date.today().strftime('%d/%m/%Y')}
-        </div>
+    <div style="font-size: 2.2rem; font-weight: 800; color: white; letter-spacing: -1px; font-family: Inter, sans-serif; line-height: 1.1;">
+        Afilia<span style="color: #c4b5fd;">Metrics</span>
+    </div>
+    <div style="font-size: 0.88rem; color: rgba(255,255,255,0.65); margin-top: 8px; font-family: Inter, sans-serif; letter-spacing: 0.3px;">
+        Dashboard de Afiliados &nbsp;·&nbsp; Shopee + Pinterest + Meta &nbsp;·&nbsp; {date.today().strftime('%d/%m/%Y')}
     </div>
 </div>
 """, unsafe_allow_html=True)
