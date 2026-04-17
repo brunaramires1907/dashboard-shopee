@@ -215,25 +215,7 @@ def titulo(icone, texto, cor="#6366f1"):
         </span>
     </div>
     """, unsafe_allow_html=True)
-    estilos = []
-    for col in row.index:
-        if col in ("lucro", "Lucro"):
-            v = converter_valor(row[col])
-            estilos.append("color: #16a34a; font-weight:bold;" if v > 0 else "color: #dc2626; font-weight:bold;")
-        elif col in ("roi", "ROI"):
-            try:
-                v = float(str(row[col]).replace("%", "").replace(",", ".")) / 100
-            except:
-                v = 0
-            if v >= roi_minimo:
-                estilos.append("color: #16a34a; font-weight:bold;")
-            elif v >= roi_minimo * 0.8:
-                estilos.append("color: #d97706; font-weight:bold;")
-            else:
-                estilos.append("color: #dc2626; font-weight:bold;")
-        else:
-            estilos.append("")
-    return estilos
+
 
 # =========================
 # PROCESSAMENTO
