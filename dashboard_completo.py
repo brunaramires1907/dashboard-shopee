@@ -762,7 +762,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
 
             # Linha de totais
             totais = {
-                "_data":       "**TOTAL**",
+                "_data":       "TOTAL",
                 "faturamento": fat_dia["faturamento"].sum(),
                 "comissao":    fat_dia["comissao"].sum(),
                 "gasto":       fat_dia["gasto"].sum(),
