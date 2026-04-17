@@ -759,13 +759,26 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
             st.plotly_chart(fig_dia, use_container_width=True)
 
             fat_dia_display = fat_dia.copy()
-            fat_dia_display["faturamento"] = fat_dia_display["faturamento"].apply(lambda x: f"R$ {x:,.2f}")
-            fat_dia_display["comissao"]    = fat_dia_display["comissao"].apply(lambda x: f"R$ {x:,.2f}")
-            fat_dia_display["gasto"]       = fat_dia_display["gasto"].apply(lambda x: f"R$ {x:,.2f}")
-            fat_dia_display["lucro"]       = fat_dia_display["lucro"].apply(lambda x: f"R$ {x:,.2f}")
-            fat_dia_display["vendas"]      = fat_dia_display["vendas"].astype(int)
-            fat_dia_display["diretas"]     = fat_dia_display["diretas"].astype(int)
-            fat_dia_display["indiretas"]   = fat_dia_display["indiretas"].astype(int)
+
+            # Linha de totais
+            totais = {
+                "_data":       "**TOTAL**",
+                "faturamento": fat_dia["faturamento"].sum(),
+                "comissao":    fat_dia["comissao"].sum(),
+                "gasto":       fat_dia["gasto"].sum(),
+                "lucro":       fat_dia["lucro"].sum(),
+                "vendas":      fat_dia["vendas"].sum(),
+                "diretas":     fat_dia["diretas"].sum(),
+                "indiretas":   fat_dia["indiretas"].sum(),
+            }
+            fat_dia_display = pd.concat([fat_dia_display, pd.DataFrame([totais])], ignore_index=True)
+
+            # Formata colunas monetárias
+            for col in ["faturamento", "comissao", "gasto", "lucro"]:
+                fat_dia_display[col] = fat_dia_display[col].apply(lambda x: f"R$ {float(x):,.2f}" if str(x) != "**TOTAL**" else x)
+            for col in ["vendas", "diretas", "indiretas"]:
+                fat_dia_display[col] = fat_dia_display[col].apply(lambda x: int(float(x)))
+
             fat_dia_display = fat_dia_display[["_data", "faturamento", "comissao", "gasto", "lucro", "vendas", "diretas", "indiretas"]]
             fat_dia_display.columns = ["Data", "Faturamento", "Comissão", "Gasto", "Lucro", "Qtd Vendas", "Diretas", "Indiretas"]
 
