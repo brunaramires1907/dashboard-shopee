@@ -51,6 +51,25 @@ st.markdown("""
     [data-testid="stMetricLabel"]  { color: #64748b !important; font-size: 0.82rem !important; font-weight: 500 !important; text-transform: uppercase; letter-spacing: 0.05em; }
     [data-testid="stMetricDelta"]  { font-size: 0.85rem !important; }
 
+    /* Tags do multiselect — roxo no lugar do vermelho */
+    span[data-baseweb="tag"] {
+        background-color: #ede9fe !important;
+        border: 1px solid #c4b5fd !important;
+        border-radius: 6px !important;
+    }
+    span[data-baseweb="tag"] span {
+        color: #6366f1 !important;
+        font-weight: 500 !important;
+        font-size: 0.78rem !important;
+    }
+    span[data-baseweb="tag"] button { color: #6366f1 !important; }
+
+    /* Radio buttons mais compactos */
+    div[data-testid="stRadio"] > div { gap: 6px !important; }
+
+    /* Toggle */
+    div[data-testid="stToggle"] label { font-weight: 500 !important; }
+
     /* Títulos */
     h1 { color: #0f172a !important; font-size: 1.8rem !important; font-weight: 700 !important; }
     h2, h3 { color: #1e293b !important; font-weight: 600 !important; }
@@ -137,18 +156,40 @@ st.markdown(f"""
 # =========================
 # SIDEBAR
 # =========================
-st.sidebar.header("🎯 Configurações")
-
-roi_minimo = st.sidebar.slider("ROI mínimo aceitável", min_value=-1.0, max_value=5.0, value=0.5, step=0.05)
-meta_mensal = st.sidebar.number_input("Meta mensal de faturamento (R$)", min_value=0.0, value=10000.0, step=500.0)
+st.sidebar.markdown("""
+<div style="padding:4px 0 12px 0;">
+    <div style="font-size:1.1rem; font-weight:800; color:#0f172a; font-family:Inter,sans-serif; letter-spacing:-0.3px;">
+        Afilia<span style="color:#6366f1;">Metrics</span>
+    </div>
+    <div style="font-size:0.72rem; color:#94a3b8; font-family:Inter,sans-serif;">Painel de Controle</div>
+</div>
+""", unsafe_allow_html=True)
 
 st.sidebar.divider()
-st.sidebar.header("📂 Importação de Arquivos")
+st.sidebar.markdown("**🎯 Configurações**")
+roi_minimo   = st.sidebar.slider("ROI mínimo aceitável", min_value=-1.0, max_value=5.0, value=0.5, step=0.05)
+meta_mensal  = st.sidebar.number_input("Meta mensal de faturamento (R$)", min_value=0.0, value=10000.0, step=500.0)
 
-pinterest_files       = st.sidebar.file_uploader("Pinterest (CSV)",           type="csv",  accept_multiple_files=True)
-meta_files            = st.sidebar.file_uploader("Meta Ads (XLSX)",            type="xlsx", accept_multiple_files=True)
-shopee_comissao_files = st.sidebar.file_uploader("Shopee – Comissões (CSV)",   type="csv",  accept_multiple_files=True)
-shopee_cliques_files  = st.sidebar.file_uploader("Shopee – Cliques (CSV)",     type="csv",  accept_multiple_files=True)
+st.sidebar.divider()
+st.sidebar.markdown("**📂 Importação de Arquivos**")
+
+pinterest_files       = st.sidebar.file_uploader("📌 Pinterest (CSV)",         type="csv",  accept_multiple_files=True, help="Exporte o relatório de métricas do Pinterest Ads em CSV")
+meta_files            = st.sidebar.file_uploader("📘 Meta Ads (XLSX)",          type="xlsx", accept_multiple_files=True, help="Exporte o relatório de campanhas do Meta Ads em XLSX")
+shopee_comissao_files = st.sidebar.file_uploader("🛍️ Shopee – Comissões (CSV)", type="csv",  accept_multiple_files=True, help="Exporte o relatório de comissões do painel de afiliados Shopee")
+shopee_cliques_files  = st.sidebar.file_uploader("👆 Shopee – Cliques (CSV)",   type="csv",  accept_multiple_files=True, help="Exporte o relatório de cliques do painel de afiliados Shopee")
+
+# Status dos uploads
+st.sidebar.markdown("**📋 Status dos arquivos**")
+def status_badge(files, nome):
+    if files:
+        st.sidebar.markdown(f'<span style="color:#16a34a; font-size:0.82rem;">✅ {nome} — {len(files)} arquivo(s)</span>', unsafe_allow_html=True)
+    else:
+        st.sidebar.markdown(f'<span style="color:#94a3b8; font-size:0.82rem;">⏳ {nome} — não importado</span>', unsafe_allow_html=True)
+
+status_badge(pinterest_files,       "Pinterest")
+status_badge(meta_files,            "Meta Ads")
+status_badge(shopee_comissao_files, "Shopee Comissões")
+status_badge(shopee_cliques_files,  "Shopee Cliques")
 
 # =========================
 # FUNÇÕES UTILITÁRIAS
@@ -359,39 +400,48 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
     data_max = df_shopee_raw["_data"].max().date()
 
     st.sidebar.divider()
-    st.sidebar.header("🔍 Filtros")
+    st.sidebar.markdown("**🔍 Filtros**")
 
     # --- Filtro de período ---
+    st.sidebar.markdown("<span style='font-size:0.8rem; color:#64748b;'>📅 Período</span>", unsafe_allow_html=True)
     col_d1, col_d2 = st.sidebar.columns(2)
     with col_d1:
-        data_ini = st.date_input("De:", value=data_min, min_value=data_min, max_value=data_max)
+        data_ini = st.date_input("De:", value=data_min, min_value=data_min, max_value=data_max,
+                                  format="DD/MM/YYYY")
     with col_d2:
-        data_fim = st.date_input("Até:", value=data_max, min_value=data_min, max_value=data_max)
+        data_fim = st.date_input("Até:", value=data_max, min_value=data_min, max_value=data_max,
+                                  format="DD/MM/YYYY")
 
     # --- Filtro por SubID ---
+    st.sidebar.markdown("<span style='font-size:0.8rem; color:#64748b;'>🏷️ SubID(s)</span>", unsafe_allow_html=True)
     subids_todos = sorted(df_shopee_raw["subid"].dropna().unique().tolist())
-    subids_sel   = st.sidebar.multiselect("SubID(s):", subids_todos, default=subids_todos)
+    subids_sel   = st.sidebar.multiselect("", subids_todos, default=subids_todos, label_visibility="collapsed")
 
     # --- Filtro por canal ---
     canais_disponiveis = sorted(df_shopee_raw["_canal"].dropna().unique().tolist()) if "_canal" in df_shopee_raw.columns else []
-    canais_sel = st.sidebar.multiselect("Canal:", canais_disponiveis, default=canais_disponiveis)
+    if canais_disponiveis:
+        st.sidebar.markdown("<span style='font-size:0.8rem; color:#64748b;'>📡 Canal</span>", unsafe_allow_html=True)
+        canais_sel = st.sidebar.multiselect("", canais_disponiveis, default=canais_disponiveis, label_visibility="collapsed")
+    else:
+        canais_sel = []
 
-    # --- Filtro por status de venda ---
-    tipo_venda = st.sidebar.radio(
-        "Tipo de venda:",
-        ["Todas", "Somente Diretas", "Somente Indiretas"],
-        horizontal=False
-    )
+    # --- Filtro por tipo de venda ---
+    st.sidebar.markdown("<span style='font-size:0.8rem; color:#64748b;'>🔀 Tipo de venda</span>", unsafe_allow_html=True)
+    tipo_venda = st.sidebar.radio("", ["Todas", "Somente Diretas", "Somente Indiretas"],
+                                   horizontal=True, label_visibility="collapsed")
 
     # --- Comparativo de períodos ---
-    comparar = st.sidebar.checkbox("📊 Comparar dois períodos")
+    st.sidebar.markdown("")
+    comparar = st.sidebar.toggle("📊 Comparar dois períodos")
     if comparar:
-        st.sidebar.markdown("**Período B (comparação)**")
+        st.sidebar.markdown("<span style='font-size:0.8rem; color:#64748b;'>📅 Período B</span>", unsafe_allow_html=True)
         col_c1, col_c2 = st.sidebar.columns(2)
         with col_c1:
-            data_ini_b = st.date_input("De (B):", value=data_min, min_value=data_min, max_value=data_max, key="db1")
+            data_ini_b = st.date_input("De (B):", value=data_min, min_value=data_min, max_value=data_max,
+                                        key="db1", format="DD/MM/YYYY")
         with col_c2:
-            data_fim_b = st.date_input("Até (B):", value=data_max, min_value=data_min, max_value=data_max, key="db2")
+            data_fim_b = st.date_input("Até (B):", value=data_max, min_value=data_min, max_value=data_max,
+                                        key="db2", format="DD/MM/YYYY")
 
     # --- Aplicar filtros no raw ---
     mask = (
@@ -587,7 +637,8 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     with col_ord:
         ordenar_por = st.selectbox("Ordenar por:", ["roi", "lucro", "faturamento", "comissoes", "gasto", "total_vendas", "%_batimento_cliques"])
     with col_filt:
-        mostrar_apenas_prejuizo = st.checkbox("Mostrar apenas prejuízo")
+        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+        mostrar_apenas_prejuizo = st.toggle("🔴 Só prejuízo")
 
     df_tabela = df.copy()
     if mostrar_apenas_prejuizo:
