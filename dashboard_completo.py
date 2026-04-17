@@ -138,35 +138,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown(f"""
-<div style="
-    background: #6366f1;
-    border-radius: 16px;
-    padding: 24px 32px;
-    margin-bottom: 24px;
-">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div>
-            <div style="font-size:2rem; font-weight:800; color:white; letter-spacing:-1px; font-family:Inter,sans-serif; line-height:1.1;">
-                Afilia<span style="color:#c4b5fd;">Metrics</span>
-            </div>
-            <div style="font-size:0.82rem; color:rgba(255,255,255,0.6); margin-top:6px; font-family:Inter,sans-serif;">
-                Dashboard de Afiliados &nbsp;·&nbsp; {date.today().strftime('%d/%m/%Y')}
-            </div>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-            <div style="background:white; border-radius:10px; padding:6px 10px; display:flex; align-items:center; gap:6px;">
-                <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#E60023" d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg>
-                <span style="font-size:11px; font-weight:600; color:#E60023;">Pinterest</span>
-            </div>
-            <div style="background:white; border-radius:10px; padding:6px 10px; display:flex; align-items:center; gap:6px;">
-                <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#0081FB" d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76 1.012 1.144 1.626 2.663 1.626.633 0 1.183-.08 1.72-.293a4.96 4.96 0 0 0 1.303-.711 10.9 10.9 0 0 0 1.07-.925c.708-.803 1.498-1.968 2.22-3.51l.057-.131c.417-.974.853-2.102 1.168-3.243.15-.56.267-1.123.267-1.62 0-2.002-.52-3.36-1.546-4.26-.71-.623-1.688-.919-2.889-.919-1.492 0-2.808.615-3.98 1.611C9.893 4.859 8.419 4.03 6.915 4.03zm8.109 1.01c.91 0 1.619.25 2.127.748.647.633.966 1.663.966 3.148 0 .392-.093.884-.228 1.392-.282 1.055-.696 2.12-1.086 3.044l-.069.157c-.672 1.441-1.397 2.519-2.009 3.215a9.553 9.553 0 0 1-.895.773c-.43.315-.873.53-1.314.63-.291.066-.59.106-.905.106-1.215 0-1.417-.693-2.188-1.717-.592 1.009-1.16 1.718-1.854 2.196-.88.607-1.744.84-2.796.84-1.345 0-2.066-.55-2.54-1.357a4.28 4.28 0 0 1-.299-.611 5.59 5.59 0 0 1-.213-.706A8.963 8.963 0 0 1 1 14.449c0-2.367.65-4.8 1.883-6.588C3.963 6.176 5.341 5.04 6.915 5.04c1.18 0 2.369.61 3.43 1.68l.247.248.247-.248c1.26-1.268 2.538-1.68 3.185-1.68z"/></svg>
-                <span style="font-size:11px; font-weight:600; color:#0081FB;">Meta</span>
-            </div>
-            <div style="background:white; border-radius:10px; padding:6px 10px; display:flex; align-items:center; gap:6px;">
-                <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#EE4D2D" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/></svg>
-                <span style="font-size:11px; font-weight:600; color:#EE4D2D;">Shopee</span>
-            </div>
-        </div>
+<div style="background:#6366f1; border-radius:16px; padding:24px 32px; margin-bottom:24px;">
+    <div style="font-size:2rem; font-weight:800; color:white; letter-spacing:-1px; font-family:Inter,sans-serif; line-height:1.1;">
+        Afilia<span style="color:#c4b5fd;">Metrics</span>
+    </div>
+    <div style="font-size:0.82rem; color:rgba(255,255,255,0.6); margin-top:6px; font-family:Inter,sans-serif;">
+        Dashboard de Afiliados &nbsp;·&nbsp; {date.today().strftime('%d/%m/%Y')}
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -192,26 +169,22 @@ st.sidebar.divider()
 st.sidebar.markdown("**📂 Importação de Arquivos**")
 
 pinterest_files       = st.sidebar.file_uploader("📌 Pinterest (CSV)",         type="csv",  accept_multiple_files=True, help="Exporte o relatório de métricas do Pinterest Ads em CSV")
-meta_files            = st.sidebar.file_uploader("📘 Meta Ads (XLSX)",          type="xlsx", accept_multiple_files=True, help="Exporte o relatório de campanhas do Meta Ads em XLSX")
+meta_files            = st.sidebar.file_uploader("🔵 Meta Ads (XLSX)",          type="xlsx", accept_multiple_files=True, help="Exporte o relatório de campanhas do Meta Ads em XLSX")
 shopee_comissao_files = st.sidebar.file_uploader("🛍️ Shopee – Comissões (CSV)", type="csv",  accept_multiple_files=True, help="Exporte o relatório de comissões do painel de afiliados Shopee")
-shopee_cliques_files  = st.sidebar.file_uploader("👆 Shopee – Cliques (CSV)",   type="csv",  accept_multiple_files=True, help="Exporte o relatório de cliques do painel de afiliados Shopee")
+shopee_cliques_files  = st.sidebar.file_uploader("🛍️ Shopee – Cliques (CSV)",   type="csv",  accept_multiple_files=True, help="Exporte o relatório de cliques do painel de afiliados Shopee")
 
 # Status dos uploads
 st.sidebar.markdown("**📋 Status dos arquivos**")
-def status_badge(files, nome, icone_svg):
+def status_badge(files, nome, emoji):
     if files:
-        st.sidebar.markdown(f'<div style="display:flex;align-items:center;gap:6px;margin:3px 0;">{icone_svg}<span style="color:#16a34a; font-size:0.82rem;">✅ {nome} — {len(files)} arquivo(s)</span></div>', unsafe_allow_html=True)
+        st.sidebar.markdown(f'<span style="color:#16a34a; font-size:0.82rem;">{emoji} ✅ {nome} — {len(files)} arquivo(s)</span>', unsafe_allow_html=True)
     else:
-        st.sidebar.markdown(f'<div style="display:flex;align-items:center;gap:6px;margin:3px 0;">{icone_svg}<span style="color:#94a3b8; font-size:0.82rem;">⏳ {nome} — não importado</span></div>', unsafe_allow_html=True)
+        st.sidebar.markdown(f'<span style="color:#94a3b8; font-size:0.82rem;">{emoji} ⏳ {nome} — não importado</span>', unsafe_allow_html=True)
 
-pin_svg = '<svg width="14" height="14" viewBox="0 0 24 24"><path fill="#E60023" d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg>'
-meta_svg = '<svg width="14" height="14" viewBox="0 0 24 24"><path fill="#0081FB" d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86 5.297 5.297 0 0 0 .371.761c.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76 1.012 1.144 1.626 2.663 1.626.633 0 1.183-.08 1.72-.293a4.96 4.96 0 0 0 1.303-.711 10.9 10.9 0 0 0 1.07-.925c.708-.803 1.498-1.968 2.22-3.51l.057-.131c.417-.974.853-2.102 1.168-3.243.15-.56.267-1.123.267-1.62 0-2.002-.52-3.36-1.546-4.26-.71-.623-1.688-.919-2.889-.919-1.492 0-2.808.615-3.98 1.611C9.893 4.859 8.419 4.03 6.915 4.03z"/></svg>'
-shp_svg = '<svg width="14" height="14" viewBox="0 0 24 24"><path fill="#EE4D2D" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/></svg>'
-
-status_badge(pinterest_files,       "Pinterest",          pin_svg)
-status_badge(meta_files,            "Meta Ads",           meta_svg)
-status_badge(shopee_comissao_files, "Shopee Comissões",   shp_svg)
-status_badge(shopee_cliques_files,  "Shopee Cliques",     shp_svg)
+status_badge(pinterest_files,       "Pinterest",        "📌")
+status_badge(meta_files,            "Meta Ads",         "🔵")
+status_badge(shopee_comissao_files, "Shopee Comissões", "🛍️")
+status_badge(shopee_cliques_files,  "Shopee Cliques",   "🛍️")
 
 # =========================
 # FUNÇÕES UTILITÁRIAS
@@ -817,27 +790,27 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
 
         col_a, col_b, col_c, col_d = st.columns(4)
         with col_a:
-            st.markdown(f"""<div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:14px 16px;">
-                <div style="font-size:10px; font-weight:700; color:#1d4ed8; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">💡 Escalar</div>
-                <div style="font-size:12px; color:#1e3a5f; line-height:1.5;"><strong>{melhor['subid']}</strong> tem ROI de <strong>{melhor['roi']:.0%}</strong> — sua melhor performance.</div>
+            st.markdown(f"""<div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:16px; height:110px;">
+                <div style="font-size:10px; font-weight:700; color:#1d4ed8; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px;">💡 Escalar</div>
+                <div style="font-size:12px; color:#1e3a5f; line-height:1.6;"><strong>{melhor['subid']}</strong><br>ROI de <strong>{melhor['roi']:.0%}</strong> — melhor performance</div>
             </div>""", unsafe_allow_html=True)
         with col_b:
             if pior["lucro"] < 0:
-                st.markdown(f"""<div style="background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:14px 16px;">
-                    <div style="font-size:10px; font-weight:700; color:#92400e; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">⚠️ Revisar</div>
-                    <div style="font-size:12px; color:#78350f; line-height:1.5;"><strong>{pior['subid']}</strong> gerou prejuízo de <strong>R$ {abs(pior['lucro']):.2f}</strong>. Avalie o criativo.</div>
+                st.markdown(f"""<div style="background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:16px; height:110px;">
+                    <div style="font-size:10px; font-weight:700; color:#92400e; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px;">⚠️ Revisar</div>
+                    <div style="font-size:12px; color:#78350f; line-height:1.6;"><strong>{pior['subid']}</strong><br>Prejuízo de <strong>R$ {abs(pior['lucro']):.2f}</strong></div>
                 </div>""", unsafe_allow_html=True)
         with col_c:
-            st.markdown(f"""<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:14px 16px;">
-                <div style="font-size:10px; font-weight:700; color:#14532d; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">✅ Lucrativas</div>
-                <div style="font-size:22px; font-weight:800; color:#16a34a;">{campanhas_lucro}</div>
-                <div style="font-size:11px; color:#4ade80;">campanhas no positivo</div>
+            st.markdown(f"""<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:16px; height:110px;">
+                <div style="font-size:10px; font-weight:700; color:#14532d; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px;">✅ Lucrativas</div>
+                <div style="font-size:28px; font-weight:800; color:#16a34a; line-height:1;">{campanhas_lucro}</div>
+                <div style="font-size:11px; color:#4ade80; margin-top:6px;">campanhas no positivo</div>
             </div>""", unsafe_allow_html=True)
         with col_d:
-            st.markdown(f"""<div style="background:#fef2f2; border:1px solid #fecaca; border-radius:12px; padding:14px 16px;">
-                <div style="font-size:10px; font-weight:700; color:#991b1b; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">🚨 Em Prejuízo</div>
-                <div style="font-size:22px; font-weight:800; color:#dc2626;">{campanhas_prejuizo}</div>
-                <div style="font-size:11px; color:#f87171;">campanhas no negativo</div>
+            st.markdown(f"""<div style="background:#fef2f2; border:1px solid #fecaca; border-radius:12px; padding:16px; height:110px;">
+                <div style="font-size:10px; font-weight:700; color:#991b1b; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px;">🚨 Em Prejuízo</div>
+                <div style="font-size:28px; font-weight:800; color:#dc2626; line-height:1;">{campanhas_prejuizo}</div>
+                <div style="font-size:11px; color:#f87171; margin-top:6px;">campanhas no negativo</div>
             </div>""", unsafe_allow_html=True)
 
     st.divider()
