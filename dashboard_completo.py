@@ -654,7 +654,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     for col in ["total_vendas", "vendas_diretas", "vendas_indiretas", "qtd_itens", "cliques_anuncio", "cliques_shopee"]:
         df_display[col] = df_display[col].astype(int)
 
-    # Tendência por texto (Streamlit não renderiza SVG em dataframe)
+    # Tendência por texto compacto
     def gerar_spark(subid):
         if df_shopee_filtrado.empty or "_data" not in df_shopee_filtrado.columns:
             return "—"
@@ -665,17 +665,23 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         if len(por_dia) < 2: return "—"
         vals = por_dia.values
         var = ((vals[-1] - vals[0]) / vals[0] * 100) if vals[0] > 0 else 0
-        if var > 0:   return f"↑ +{var:.1f}%"
-        elif var < 0: return f"↓ {var:.1f}%"
-        else:         return "→ 0%"
+        if var > 0:   return f"↑ +{var:.0f}%"
+        elif var < 0: return f"↓ {var:.0f}%"
+        else:         return "→"
 
     df_display["tendencia"] = df_tabela["subid"].apply(gerar_spark)
 
     df_display.columns = [
         "SubID", "Comissão", "Faturamento", "Gasto", "Lucro", "ROI",
-        "Total Vendas", "Diretas", "Indiretas", "Qtd Prods",
-        "Ticket Médio", "Cliques Anúncio", "Cliques Shopee", "% Batimento", "Tendência"
+        "Vendas", "Diretas", "Indiretas", "Prods",
+        "Ticket Médio", "Cliques Anúncio", "Cliques Shopee", "% Bat.", "Tend."
     ]
+
+    # Reordena: métricas principais primeiro, cliques no final
+    cols_ordem = ["SubID", "Comissão", "Gasto", "Lucro", "Faturamento", "ROI",
+                  "Tend.", "Ticket Médio", "Vendas", "Diretas", "Indiretas", "Prods",
+                  "Cliques Anúncio", "Cliques Shopee", "% Bat."]
+    df_display = df_display[cols_ordem]
 
     # Linha de total
     total_row = {
@@ -685,15 +691,15 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         "Gasto":           f"R$ {df_tabela['gasto'].sum():,.2f}",
         "Lucro":           f"R$ {df_tabela['lucro'].sum():,.2f}",
         "ROI":             f"{(df_tabela['lucro'].sum()/df_tabela['gasto'].sum()) if df_tabela['gasto'].sum() > 0 else 0:.2%}",
-        "Total Vendas":    int(df_tabela["total_vendas"].sum()),
+        "Tend.":           "—",
+        "Ticket Médio":    f"R$ {ticket_medio_geral:,.2f}",
+        "Vendas":          int(df_tabela["total_vendas"].sum()),
         "Diretas":         int(df_tabela["vendas_diretas"].sum()),
         "Indiretas":       int(df_tabela["vendas_indiretas"].sum()),
-        "Qtd Prods":       int(df_tabela["qtd_itens"].sum()),
-        "Ticket Médio":    f"R$ {ticket_medio_geral:,.2f}",
+        "Prods":           int(df_tabela["qtd_itens"].sum()),
         "Cliques Anúncio": int(df_tabela["cliques_anuncio"].sum()),
         "Cliques Shopee":  int(df_tabela["cliques_shopee"].sum()),
-        "% Batimento":     "—",
-        "Tendência":       "—",
+        "% Bat.":          "—",
     }
     df_display = pd.concat([df_display, pd.DataFrame([total_row])], ignore_index=True)
 
@@ -715,10 +721,10 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
                 else:                styles.at[i, "ROI"] = "color: #dc2626; font-weight:bold;"
             except: pass
             try:
-                t = str(row["Tendência"])
-                if "↑" in t: styles.at[i, "Tendência"] = "color: #16a34a; font-weight:bold;"
-                elif "↓" in t: styles.at[i, "Tendência"] = "color: #dc2626; font-weight:bold;"
-                else: styles.at[i, "Tendência"] = "color: #d97706;"
+                t = str(row["Tend."])
+                if "↑" in t: styles.at[i, "Tend."] = "color: #16a34a; font-weight:bold;"
+                elif "↓" in t: styles.at[i, "Tend."] = "color: #dc2626; font-weight:bold;"
+                else: styles.at[i, "Tend."] = "color: #d97706;"
             except: pass
         return styles
 
