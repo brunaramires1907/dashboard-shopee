@@ -280,6 +280,7 @@ if shopee_comissao_files:
             col_atrib     = next((c for c in shp.columns if "tipo_de_atribuicao" in c or "atribuicao" in c), None)
             col_data      = next((c for c in shp.columns if "horario_do_pedido" in c or "data_do_pedido" in c), None)
             col_qtd       = next((c for c in shp.columns if "qtd" in c), None)
+            col_canal     = next((c for c in shp.columns if c == "canal"), None)
 
             if not col_valor:
                 erros_carregamento.append(f"Shopee '{f.name}': coluna 'valor_de_compra' não encontrada.")
@@ -318,7 +319,9 @@ if shopee_comissao_files:
                 else:
                     shp_valido["_data"] = date.today()
 
-                lista_shopee_raw.append(shp_valido[["subid", "_valor", "_comissao", "_qtd", "_direta", "_indireta", "_data"]])
+                shp_valido["_canal"] = shp_valido[col_canal].fillna("Others").str.strip() if col_canal else "Others"
+
+                lista_shopee_raw.append(shp_valido[["subid", "_valor", "_comissao", "_qtd", "_direta", "_indireta", "_data", "_canal"]])
 
                 agg = shp_valido.groupby("subid", as_index=False).agg(
                     comissoes=("_comissao", "sum"),
@@ -363,6 +366,10 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
     subids_todos = sorted(df_shopee_raw["subid"].dropna().unique().tolist())
     subids_sel   = st.sidebar.multiselect("SubID(s):", subids_todos, default=subids_todos)
 
+    # --- Filtro por canal ---
+    canais_disponiveis = sorted(df_shopee_raw["_canal"].dropna().unique().tolist()) if "_canal" in df_shopee_raw.columns else []
+    canais_sel = st.sidebar.multiselect("Canal:", canais_disponiveis, default=canais_disponiveis)
+
     # --- Filtro por status de venda ---
     tipo_venda = st.sidebar.radio(
         "Tipo de venda:",
@@ -386,6 +393,8 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
         (df_shopee_raw["_data"].dt.date <= data_fim) &
         (df_shopee_raw["subid"].isin(subids_sel))
     )
+    if canais_sel and "_canal" in df_shopee_raw.columns:
+        mask &= df_shopee_raw["_canal"].isin(canais_sel)
     if tipo_venda == "Somente Diretas":
         mask &= df_shopee_raw["_direta"] == 1
     elif tipo_venda == "Somente Indiretas":
@@ -504,6 +513,26 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     percentual_meta = min(faturamento_bruto_total / meta_mensal, 1.0) if meta_mensal else 0
     st.progress(percentual_meta)
     st.caption(f"Atingido: {percentual_meta * 100:.2f}%  |  Faltam: R$ {max(meta_mensal - faturamento_bruto_total, 0):,.2f}")
+
+    st.divider()
+
+    # =========================
+    # TABELA CANAL
+    # =========================
+    if not df_shopee_filtrado.empty and "_canal" in df_shopee_filtrado.columns:
+        st.subheader("📡 Canal — Quantidade & Comissão")
+        canal_agg = df_shopee_filtrado.groupby("_canal", as_index=False).agg(
+            pedidos=("_qtd", "count"),
+            vendas_brutas=("_valor", "sum"),
+            comissao_total=("_comissao", "sum")
+        ).sort_values("vendas_brutas", ascending=False)
+
+        canal_agg.columns = ["Canal", "Pedidos", "Vendas Brutas (R$)", "Comissão Total (R$)"]
+        canal_agg["Vendas Brutas (R$)"]  = canal_agg["Vendas Brutas (R$)"].apply(lambda x: f"R$ {x:,.2f}")
+        canal_agg["Comissão Total (R$)"] = canal_agg["Comissão Total (R$)"].apply(lambda x: f"R$ {x:,.2f}")
+        canal_agg["Pedidos"]             = canal_agg["Pedidos"].apply(lambda x: f"{x} pedidos")
+
+        st.dataframe(canal_agg, use_container_width=True, hide_index=True)
 
     st.divider()
 
