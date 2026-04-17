@@ -434,13 +434,13 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
     st.sidebar.markdown("")
     comparar = st.sidebar.toggle("📊 Comparar dois períodos")
     if comparar:
-        st.sidebar.markdown("<span style='font-size:0.8rem; color:#64748b;'>📅 Período B</span>", unsafe_allow_html=True)
+        st.sidebar.markdown("<span style='font-size:0.8rem; color:#64748b;'>📅 Período de comparação</span>", unsafe_allow_html=True)
         col_c1, col_c2 = st.sidebar.columns(2)
         with col_c1:
-            data_ini_b = st.date_input("De (B):", value=data_min, min_value=data_min, max_value=data_max,
+            data_ini_b = st.date_input("De:", value=data_min, min_value=data_min, max_value=data_max,
                                         key="db1", format="DD/MM/YYYY")
         with col_c2:
-            data_fim_b = st.date_input("Até (B):", value=data_max, min_value=data_min, max_value=data_max,
+            data_fim_b = st.date_input("Até:", value=data_max, min_value=data_min, max_value=data_max,
                                         key="db2", format="DD/MM/YYYY")
 
     # --- Aplicar filtros no raw ---
@@ -586,48 +586,6 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     """, unsafe_allow_html=True)
 
     st.divider()
-
-    # =========================
-    # COMPARATIVO DE PERÍODOS
-    # =========================
-    if comparar and not df_shopee_raw.empty and not vendas_b.empty:
-        titulo("📊", "Comparativo de Períodos", cor="#f59e0b")
-        st.caption(f"**Período A:** {data_ini} → {data_fim}  |  **Período B:** {data_ini_b} → {data_fim_b}")
-
-        fat_a = df_shopee_filtrado["_valor"].sum()
-        com_a = df_shopee_filtrado["_comissao"].sum()
-        ven_a = len(df_shopee_filtrado)
-
-        fat_b = df_raw_b["_valor"].sum()
-        com_b = df_raw_b["_comissao"].sum()
-        ven_b = len(df_raw_b)
-
-        def delta_str(a, b):
-            if b == 0: return ""
-            d = ((a - b) / b) * 100
-            return f"{'▲' if d >= 0 else '▼'} {abs(d):.1f}% vs B"
-
-        cc1, cc2, cc3 = st.columns(3)
-        cc1.metric("🧾 Faturamento A vs B", f"R$ {fat_a:,.2f}", delta=delta_str(fat_a, fat_b))
-        cc2.metric("💰 Comissão A vs B",    f"R$ {com_a:,.2f}", delta=delta_str(com_a, com_b))
-        cc3.metric("🛒 Vendas A vs B",      f"{ven_a}",          delta=delta_str(ven_a, ven_b))
-
-        df_comp = vendas[["subid", "faturamento", "comissoes"]].rename(columns={"faturamento": "Fat A", "comissoes": "Com A"})
-        df_comp = df_comp.merge(
-            vendas_b[["subid", "faturamento", "comissoes"]].rename(columns={"faturamento": "Fat B", "comissoes": "Com B"}),
-            on="subid", how="outer"
-        ).fillna(0)
-
-        fig_comp = go.Figure()
-        fig_comp.add_trace(go.Bar(name=f"Faturamento A", x=df_comp["subid"], y=df_comp["Fat A"], marker_color="#6366f1"))
-        fig_comp.add_trace(go.Bar(name=f"Faturamento B", x=df_comp["subid"], y=df_comp["Fat B"], marker_color="#a5b4fc"))
-        fig_comp.update_layout(
-            barmode="group", title="Faturamento por SubID — Período A vs B",
-            paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
-            font_color="#1e293b", font_family="Inter"
-        )
-        st.plotly_chart(fig_comp, use_container_width=True)
-        st.divider()
 
     # =========================
     # 1. DETALHAMENTO POR SubID (PRIMEIRO)
