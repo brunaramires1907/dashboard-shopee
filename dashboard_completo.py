@@ -720,6 +720,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
             subids_disponiveis = ["Todos"] + sorted(df_shopee_filtrado["subid"].dropna().unique().tolist())
             subid_sel = st.selectbox("Filtrar por SubID:", subids_disponiveis, key="fat_dia_subid")
             raw_filtrado = df_shopee_filtrado if subid_sel == "Todos" else df_shopee_filtrado[df_shopee_filtrado["subid"] == subid_sel]
+
             fat_dia = raw_filtrado.groupby("_data", as_index=False).agg(
                 faturamento=("_valor", "sum"),
                 comissao=("_comissao", "sum"),
@@ -727,22 +728,49 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
                 diretas=("_direta", "sum"),
                 indiretas=("_indireta", "sum")
             ).sort_values("_data")
+
+            # Formata data corretamente
+            fat_dia["_data"] = pd.to_datetime(fat_dia["_data"]).dt.strftime("%d/%m/%Y")
+
+            # Adicionar gasto do df principal (por SubID selecionado)
+            if subid_sel == "Todos":
+                gasto_subid = df["gasto"].sum()
+            else:
+                gasto_row = df[df["subid"] == subid_sel]
+                gasto_subid = gasto_row["gasto"].values[0] if not gasto_row.empty else 0.0
+
+            # Distribui o gasto proporcionalmente por dia (pelo faturamento)
+            fat_total = fat_dia["faturamento"].sum()
+            if fat_total > 0:
+                fat_dia["gasto"] = fat_dia["faturamento"] / fat_total * gasto_subid
+            else:
+                fat_dia["gasto"] = 0.0
+            fat_dia["lucro"] = fat_dia["comissao"] - fat_dia["gasto"]
+
             fig_dia = go.Figure()
-            fig_dia.add_trace(go.Bar(x=fat_dia["_data"].astype(str), y=fat_dia["faturamento"], name="Faturamento", marker_color="#6366f1"))
-            fig_dia.add_trace(go.Bar(x=fat_dia["_data"].astype(str), y=fat_dia["comissao"],    name="Comissão",    marker_color="#8b5cf6"))
+            fig_dia.add_trace(go.Bar(x=fat_dia["_data"], y=fat_dia["faturamento"], name="Faturamento", marker_color="#6366f1"))
+            fig_dia.add_trace(go.Bar(x=fat_dia["_data"], y=fat_dia["comissao"],    name="Comissão",    marker_color="#8b5cf6"))
+            fig_dia.add_trace(go.Bar(x=fat_dia["_data"], y=fat_dia["gasto"],       name="Gasto",       marker_color="#f87171"))
             fig_dia.update_layout(
-                barmode="group", title="Faturamento e Comissão por Dia",
+                barmode="group", title="Faturamento, Comissão e Gasto por Dia",
                 paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
                 font_color="#1e293b", font_family="Inter", xaxis_title="Data", yaxis_title="R$"
             )
             st.plotly_chart(fig_dia, use_container_width=True)
+
             fat_dia_display = fat_dia.copy()
             fat_dia_display["faturamento"] = fat_dia_display["faturamento"].apply(lambda x: f"R$ {x:,.2f}")
             fat_dia_display["comissao"]    = fat_dia_display["comissao"].apply(lambda x: f"R$ {x:,.2f}")
+            fat_dia_display["gasto"]       = fat_dia_display["gasto"].apply(lambda x: f"R$ {x:,.2f}")
+            fat_dia_display["lucro"]       = fat_dia_display["lucro"].apply(lambda x: f"R$ {x:,.2f}")
             fat_dia_display["vendas"]      = fat_dia_display["vendas"].astype(int)
             fat_dia_display["diretas"]     = fat_dia_display["diretas"].astype(int)
             fat_dia_display["indiretas"]   = fat_dia_display["indiretas"].astype(int)
-            fat_dia_display.columns        = ["Data", "Faturamento", "Comissão", "Qtd Vendas", "Diretas", "Indiretas"]
+            fat_dia_display = fat_dia_display[["_data", "faturamento", "comissao", "gasto", "lucro", "vendas", "diretas", "indiretas"]]
+            fat_dia_display.columns = ["Data", "Faturamento", "Comissão", "Gasto", "Lucro", "Qtd Vendas", "Diretas", "Indiretas"]
+
+            if gasto_subid == 0:
+                st.caption("ℹ️ Gasto zerado — importe o arquivo de ads para ver o gasto por dia.")
             st.dataframe(fat_dia_display, use_container_width=True, hide_index=True)
         else:
             st.info("Carregue os arquivos de comissão da Shopee para ver o faturamento por dia.")
