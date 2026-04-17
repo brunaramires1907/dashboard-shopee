@@ -205,6 +205,16 @@ def gerar_excel(df):
 
 def formatar_valor(v):
     return f"R$ {v:,.2f}"
+
+def titulo(icone, texto, cor="#6366f1"):
+    st.markdown(f"""
+    <div style="display:flex; align-items:center; gap:12px; margin: 28px 0 16px 0;">
+        <div style="width:4px; height:32px; background:{cor}; border-radius:4px;"></div>
+        <span style="font-size:1.25rem; font-weight:700; color:#0f172a; font-family:Inter,sans-serif; letter-spacing:-0.3px;">
+            {icone}&nbsp; {texto}
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
     estilos = []
     for col in row.index:
         if col in ("lucro", "Lucro"):
@@ -534,7 +544,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     # COMPARATIVO DE PERÍODOS
     # =========================
     if comparar and not df_shopee_raw.empty and not vendas_b.empty:
-        st.subheader("📊 Comparativo de Períodos")
+        titulo("📊", "Comparativo de Períodos", cor="#f59e0b")
         st.caption(f"**Período A:** {data_ini} → {data_fim}  |  **Período B:** {data_ini_b} → {data_fim_b}")
 
         fat_a = df_shopee_filtrado["_valor"].sum()
@@ -577,7 +587,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     # =========================
     # 1. DETALHAMENTO POR SubID (PRIMEIRO)
     # =========================
-    st.subheader("📊 Detalhamento por SubID")
+    titulo("📊", "Detalhamento por SubID")
     col_ord, col_filt = st.columns([2, 1])
     with col_ord:
         ordenar_por = st.selectbox("Ordenar por:", ["roi", "lucro", "faturamento", "comissoes", "gasto", "total_vendas", "%_batimento_cliques"])
@@ -628,7 +638,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     # 2. CANAL
     # =========================
     if not df_shopee_filtrado.empty and "_canal" in df_shopee_filtrado.columns:
-        st.subheader("📡 Canal — Quantidade & Comissão")
+        titulo("📡", "Canal — Quantidade & Comissão", cor="#8b5cf6")
         canal_agg = df_shopee_filtrado.groupby("_canal", as_index=False).agg(
             pedidos=("_qtd", "count"),
             vendas_brutas=("_valor", "sum"),
@@ -644,7 +654,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     # =========================
     # 3. IA — INSIGHTS
     # =========================
-    st.subheader("🤖 Analista IA — Insights")
+    titulo("🤖", "Analista IA — Insights", cor="#0ea5e9")
     if not df.empty and df["roi"].nunique() > 0:
         melhor             = df.loc[df["roi"].idxmax()]
         pior               = df.loc[df["lucro"].idxmin()]
@@ -668,7 +678,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     # 4. COMPARATIVO DE PERÍODOS
     # =========================
     if comparar and not df_shopee_raw.empty and not vendas_b.empty:
-        st.subheader("📊 Comparativo de Períodos")
+        titulo("📊", "Comparativo de Períodos", cor="#f59e0b")
         st.caption(f"**Período A:** {data_ini} → {data_fim}  |  **Período B:** {data_ini_b} → {data_fim_b}")
         fat_a = df_shopee_filtrado["_valor"].sum()
         com_a = df_shopee_filtrado["_comissao"].sum()
@@ -705,7 +715,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     # =========================
     # 5. ANÁLISE VISUAL (ÚLTIMO)
     # =========================
-    st.subheader("📈 Análise Visual")
+    titulo("📈", "Análise Visual", cor="#10b981")
     tab1, tab2 = st.tabs(["ROI por Campanha", "📅 Faturamento por Dia"])
 
     with tab1:
