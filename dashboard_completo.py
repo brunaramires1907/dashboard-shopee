@@ -505,6 +505,11 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
             gasto=("gasto", "sum"),
             cliques_anuncio=("cliques_anuncio", "sum")
         )
+        # Se todos SubIDs estão selecionados, mostra tudo incluindo ads sem Shopee
+        # Se filtrou SubID específico, aplica o filtro
+        todos_subids = sorted(df_shopee_raw["subid"].dropna().unique().tolist())
+        if set(subids_sel) != set(todos_subids):
+            ads_filtrado = ads_filtrado[ads_filtrado["subid"].isin(subids_sel)]
     else:
         ads_filtrado = ads.copy()
 
