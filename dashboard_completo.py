@@ -932,6 +932,9 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         # Gasto por dia dos ads
         if not df_ads_raw.empty and "_data" in df_ads_raw.columns:
             gasto_dia = df_ads_raw.copy()
+            # Filtra por SubID selecionado para que o gasto corresponda ao filtro aplicado
+            if subids_sel:
+                gasto_dia = gasto_dia[gasto_dia["subid"].isin(subids_sel)]
             gasto_dia["_data"] = pd.to_datetime(gasto_dia["_data"]).dt.date
             gasto_dia_agg = gasto_dia.groupby("_data", as_index=False).agg(invest=("gasto", "sum"))
             fat_dia_agg = fat_dia_agg.merge(gasto_dia_agg, on="_data", how="left").fillna(0)
