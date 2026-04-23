@@ -319,7 +319,7 @@ if meta_files:
                 erros_carregamento.append(f"Meta '{f.name}': colunas esperadas não encontradas.")
                 continue
 
-            meta["subid"]           = meta[col_nome].apply(limpar_subid)
+            meta["subid"] = meta[col_nome].apply(lambda x: limpar_subid(x)[:50] if not pd.isna(x) else "")
             meta["gasto"]           = meta[col_gasto].apply(converter_valor)
             meta["cliques_anuncio"] = pd.to_numeric(meta[col_cliques], errors="coerce").fillna(0) if col_cliques else 0
             meta["_data"]           = pd.to_datetime(meta[col_data], errors="coerce") if col_data else pd.NaT
@@ -498,22 +498,16 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
     else:
         vendas = pd.DataFrame(columns=["subid", "comissoes", "faturamento", "vendas_diretas", "vendas_indiretas", "qtd_itens"])
 
-    # Filtra ads por data se disponível
-    if not df_ads_raw.empty and "_data" in df_ads_raw.columns:
+    # Filtra ads por SubID (não filtra por data da Shopee pois os períodos podem ser diferentes)
+    if not df_ads_raw.empty:
         df_ads_raw["_data"] = pd.to_datetime(df_ads_raw["_data"], errors="coerce")
-        data_ini_dt = pd.Timestamp(data_ini)
-        data_fim_dt = pd.Timestamp(data_fim)
-        mask_ads = (
-            (df_ads_raw["_data"] >= data_ini_dt) &
-            (df_ads_raw["_data"] <= data_fim_dt) &
-            (df_ads_raw["subid"].isin(subids_sel))
-        )
+        # Filtra só por SubID selecionado
+        mask_ads = df_ads_raw["subid"].isin(subids_sel)
         ads_filtrado = df_ads_raw[mask_ads].groupby("subid", as_index=False).agg(
             gasto=("gasto", "sum"),
             cliques_anuncio=("cliques_anuncio", "sum")
         )
     else:
-        # Sem data: filtra ao menos por SubID
         if not ads.empty and subids_sel:
             ads_filtrado = ads[ads["subid"].isin(subids_sel)].copy()
         else:
@@ -559,12 +553,16 @@ if lista_cliques:
     cliques_shopee = pd.concat(lista_cliques).groupby("subid").size().reset_index(name="cliques_shopee")
 
 # --- MERGE E CÁLCULOS ---
+# Garante que todos os SubIDs dos ads aparecem mesmo sem venda na Shopee
 df = (
     ads_filtrado
     .merge(vendas,         on="subid", how="outer")
     .merge(cliques_shopee, on="subid", how="outer")
-    .fillna(0)
 )
+# Preenche zeros mas preserva subid
+df["subid"] = df["subid"].fillna("").str.strip()
+df = df.fillna(0)
+df["subid"] = df["subid"].replace(0, "")  # caso subid virou 0 pelo fillna
 for col in ["comissoes", "faturamento", "gasto", "vendas_diretas", "vendas_indiretas", "qtd_itens", "cliques_anuncio", "cliques_shopee"]:
     df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 df["imposto_total"] = (df["gasto"] * imposto_meta / 100) + (df["comissoes"] * imposto_nf / 100)
