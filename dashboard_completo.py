@@ -1023,19 +1023,20 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         df_tabela_dia["comissao"] = df_tabela_dia["comissao"].apply(lambda x: f"R$ {x:,.2f}")
         df_tabela_dia["faturado"] = df_tabela_dia["faturado"].apply(lambda x: f"R$ {x:,.2f}")
         df_tabela_dia["lucro_str"]= fat_dia_agg["lucro"].apply(lambda x: f"R$ {x:,.2f}")
+        df_tabela_dia["roi_str"]  = fat_dia_agg.apply(lambda x: f"{(x['lucro']/x['invest']*100):.0f}%" if x['invest'] > 0 else "—", axis=1)
         df_tabela_dia["faturado_acum"] = df_tabela_dia["faturado_acum"].apply(lambda x: f"R$ {x:,.2f}")
 
-        total_row_dia = {
-            "_data": "TOTAL", "invest": 0, "comissao": 0, "faturado": 0, "lucro_str": 0, "faturado_acum": 0
-        }
-        df_exibe = df_tabela_dia[["_data","comissao","invest","faturado","lucro_str","faturado_acum"]].copy()
-        df_exibe.columns = ["Dia", "Comissão", "Gasto", "Faturado", "Lucro", "Faturado Acum."]
+        roi_total = f"{(total_lucro/total_invest*100):.0f}%" if total_invest > 0 else "—"
+
+        df_exibe = df_tabela_dia[["_data","comissao","invest","lucro_str","roi_str","faturado","faturado_acum"]].copy()
+        df_exibe.columns = ["Dia", "Comissão", "Gasto", "Lucro", "ROI", "Faturado", "Faturado Acum."]
         total_df = pd.DataFrame([{
             "Dia": "TOTAL",
             "Comissão": f"R$ {total_comissao_dia:,.2f}",
             "Gasto": f"R$ {total_invest:,.2f}",
-            "Faturado": f"R$ {total_faturado:,.2f}",
             "Lucro": f"R$ {total_lucro:,.2f}",
+            "ROI": roi_total,
+            "Faturado": f"R$ {total_faturado:,.2f}",
             "Faturado Acum.": "—"
         }])
         df_exibe = pd.concat([df_exibe, total_df], ignore_index=True)
@@ -1050,6 +1051,14 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
                 try:
                     v = float(str(row["Lucro"]).replace("R$","").replace(",","").strip())
                     styles.at[i, "Lucro"] = "color:#16a34a; font-weight:bold;" if v >= 0 else "color:#dc2626; font-weight:bold;"
+                except: pass
+                try:
+                    roi_v = str(row["ROI"])
+                    if roi_v != "—":
+                        v = float(roi_v.replace("%","").strip())
+                        if v >= roi_minimo * 100: styles.at[i, "ROI"] = "color:#16a34a; font-weight:bold;"
+                        elif v >= 0:              styles.at[i, "ROI"] = "color:#d97706; font-weight:bold;"
+                        else:                     styles.at[i, "ROI"] = "color:#dc2626; font-weight:bold;"
                 except: pass
             return styles
 
