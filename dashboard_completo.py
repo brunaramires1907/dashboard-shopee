@@ -498,20 +498,15 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
     else:
         vendas = pd.DataFrame(columns=["subid", "comissoes", "faturamento", "vendas_diretas", "vendas_indiretas", "qtd_itens"])
 
-    # Filtra ads por SubID (não filtra por data da Shopee pois os períodos podem ser diferentes)
+    # Filtra ads — NÃO filtra por subids_sel pois SubIDs do Meta podem não existir na Shopee
     if not df_ads_raw.empty:
         df_ads_raw["_data"] = pd.to_datetime(df_ads_raw["_data"], errors="coerce")
-        # Filtra só por SubID selecionado
-        mask_ads = df_ads_raw["subid"].isin(subids_sel)
-        ads_filtrado = df_ads_raw[mask_ads].groupby("subid", as_index=False).agg(
+        ads_filtrado = df_ads_raw.groupby("subid", as_index=False).agg(
             gasto=("gasto", "sum"),
             cliques_anuncio=("cliques_anuncio", "sum")
         )
     else:
-        if not ads.empty and subids_sel:
-            ads_filtrado = ads[ads["subid"].isin(subids_sel)].copy()
-        else:
-            ads_filtrado = ads.copy()
+        ads_filtrado = ads.copy()
 
     # Período B para comparativo
     if comparar:
