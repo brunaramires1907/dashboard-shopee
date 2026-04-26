@@ -553,16 +553,26 @@ if lista_cliques:
     cliques_shopee = pd.concat(lista_cliques).groupby("subid").size().reset_index(name="cliques_shopee")
 
 # --- MERGE E CÁLCULOS ---
-# Garante que todos os SubIDs dos ads aparecem mesmo sem venda na Shopee
 df = (
     ads_filtrado
     .merge(vendas,         on="subid", how="outer")
     .merge(cliques_shopee, on="subid", how="outer")
 )
-# Preenche zeros mas preserva subid
 df["subid"] = df["subid"].fillna("").str.strip()
 df = df.fillna(0)
-df["subid"] = df["subid"].replace(0, "")  # caso subid virou 0 pelo fillna
+df["subid"] = df["subid"].replace(0, "")
+
+# Aplica filtro de SubID no df final — garante que só aparecem SubIDs selecionados
+# Exceção: SubIDs de ads sem correspondência na Shopee aparecem quando todos estão selecionados
+if not df_shopee_raw.empty:
+    todos_subids = sorted(df_shopee_raw["subid"].dropna().unique().tolist())
+    filtro_ativo = set(subids_sel) != set(todos_subids)
+    if filtro_ativo:
+        # Filtra apenas SubIDs selecionados (remove zerados que vieram do outer join)
+        df = df[df["subid"].isin(subids_sel)]
+    else:
+        # Sem filtro: remove linhas completamente zeradas (sem gasto, comissão e cliques)
+        df = df[~((df["gasto"] == 0) & (df["comissoes"] == 0) & (df.get("cliques_shopee", 0) == 0) & (df.get("cliques_anuncio", 0) == 0))]
 for col in ["comissoes", "faturamento", "gasto", "vendas_diretas", "vendas_indiretas", "qtd_itens", "cliques_anuncio", "cliques_shopee"]:
     df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 df["imposto_total"] = (df["gasto"] * imposto_meta / 100) + (df["comissoes"] * imposto_nf / 100)
