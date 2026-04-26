@@ -444,12 +444,16 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
     subids_ads_lst = list(df_ads_raw["subid"].unique()) if not df_ads_raw.empty else []
     subids_todos   = sorted(set(subids_shopee + subids_ads_lst))
     subids_sel     = st.sidebar.multiselect("", subids_todos, default=subids_todos, label_visibility="collapsed")
+    if not subids_sel:
+        subids_sel = subids_todos
 
     # --- Filtro por canal ---
     canais_disponiveis = sorted(df_shopee_raw["_canal"].dropna().unique().tolist()) if "_canal" in df_shopee_raw.columns else []
     if canais_disponiveis:
         st.sidebar.markdown("<span style='font-size:0.8rem; color:#64748b;'>📡 Canal</span>", unsafe_allow_html=True)
         canais_sel = st.sidebar.multiselect("", canais_disponiveis, default=canais_disponiveis, label_visibility="collapsed")
+        if not canais_sel:
+            canais_sel = canais_disponiveis
     else:
         canais_sel = []
 
