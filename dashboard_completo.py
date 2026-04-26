@@ -534,6 +534,10 @@ else:
     df_shopee_filtrado = df_shopee_raw.copy()
     ads_filtrado = ads.copy()
     comparar = False
+    # Define subids quando não há arquivo Shopee
+    subids_ads_lst = list(df_ads_raw["subid"].unique()) if not df_ads_raw.empty else []
+    subids_todos   = sorted(set(subids_ads_lst))
+    subids_sel     = subids_todos
 
 # --- SHOPEE CLIQUES ---
 lista_cliques = []
