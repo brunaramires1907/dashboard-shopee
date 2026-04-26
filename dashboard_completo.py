@@ -440,11 +440,10 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
 
     # --- Filtro por SubID ---
     st.sidebar.markdown("<span style='font-size:0.8rem; color:#64748b;'>🏷️ SubID(s)</span>", unsafe_allow_html=True)
-    # Combina SubIDs da Shopee + SubIDs dos ads (Pinterest/Meta)
-    subids_shopee = df_shopee_raw["subid"].dropna().unique().tolist()
-    subids_ads_raw = list(ads_filtrado["subid"].unique()) if not ads_filtrado.empty else []
-    subids_todos = sorted(set(subids_shopee + subids_ads_raw))
-    subids_sel   = st.sidebar.multiselect("", subids_todos, default=subids_todos, label_visibility="collapsed")
+    subids_shopee  = df_shopee_raw["subid"].dropna().unique().tolist()
+    subids_ads_lst = list(df_ads_raw["subid"].unique()) if not df_ads_raw.empty else []
+    subids_todos   = sorted(set(subids_shopee + subids_ads_lst))
+    subids_sel     = st.sidebar.multiselect("", subids_todos, default=subids_todos, label_visibility="collapsed")
 
     # --- Filtro por canal ---
     canais_disponiveis = sorted(df_shopee_raw["_canal"].dropna().unique().tolist()) if "_canal" in df_shopee_raw.columns else []
@@ -570,7 +569,7 @@ for col in ["comissoes", "faturamento", "gasto", "vendas_diretas", "vendas_indir
 # - Remove linhas onde tudo é zero (não têm nenhuma informação útil)
 # - Quando filtro de SubID está ativo, mantém apenas os selecionados
 # - Quando filtro de SubID está inativo, mostra todos incluindo ads sem Shopee
-if not df_shopee_raw.empty or not ads_filtrado.empty:
+if not df_shopee_raw.empty or not df_ads_raw.empty:
     filtro_ativo = set(subids_sel) != set(subids_todos)
     if filtro_ativo:
         df = df[df["subid"].isin(subids_sel)]
