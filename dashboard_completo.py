@@ -780,10 +780,6 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     def colorir_tabela(df):
         styles = pd.DataFrame("", index=df.index, columns=df.columns)
         for i, row in df.iterrows():
-            if row["SubID"] == "TOTAL":
-                for col in df.columns:
-                    styles.at[i, col] = "font-weight:bold; background-color:#f1f5f9;"
-                continue
             try:
                 v = float(str(row["Lucro"]).replace("R$","").replace(",","").strip())
                 styles.at[i, "Lucro"] = "color: #16a34a; font-weight:bold;" if v > 0 else "color: #dc2626; font-weight:bold;"
@@ -791,16 +787,33 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
             try:
                 roi_str = str(row["ROI"])
                 v = float(roi_str.replace("↑","").replace("↓","").replace("%","").replace(",",".").strip()) / 100
-                if v >= roi_minimo:
-                    styles.at[i, "ROI"] = "color: #16a34a; font-weight:bold;"
-                elif v >= 0:
-                    styles.at[i, "ROI"] = "color: #d97706; font-weight:bold;"
-                else:
-                    styles.at[i, "ROI"] = "color: #dc2626; font-weight:bold;"
+                if v >= roi_minimo:  styles.at[i, "ROI"] = "color: #16a34a; font-weight:bold;"
+                elif v >= 0:         styles.at[i, "ROI"] = "color: #d97706; font-weight:bold;"
+                else:                styles.at[i, "ROI"] = "color: #dc2626; font-weight:bold;"
             except: pass
         return styles
 
-    st.dataframe(df_display.style.apply(colorir_tabela, axis=None), use_container_width=True, hide_index=True)
+    # Mostra tabela SEM o TOTAL (para não mover com ordenação)
+    st.dataframe(df_sem_total.style.apply(colorir_tabela, axis=None), use_container_width=True, hide_index=True)
+
+    # TOTAL fixo sempre abaixo da tabela
+    roi_cor = "#16a34a" if total_roi_tab >= roi_minimo else "#d97706" if total_roi_tab >= 0 else "#dc2626"
+    lucro_cor = "#16a34a" if df_tabela['lucro'].sum() >= 0 else "#dc2626"
+    st.markdown(f"""
+    <div style="background:#f1f5f9; border:1px solid #e2e8f0; border-radius:0 0 10px 10px; padding:10px 14px; margin-top:-8px; display:flex; gap:0; font-family:Inter,sans-serif; font-size:12px; font-weight:700;">
+        <div style="min-width:130px; color:#0f172a;">TOTAL</div>
+        <div style="min-width:110px; color:#0f172a;">R$ {df_tabela['comissoes'].sum():,.2f}</div>
+        <div style="min-width:100px; color:#0f172a;">R$ {df_tabela['gasto'].sum():,.2f}</div>
+        <div style="min-width:110px; color:{lucro_cor};">R$ {df_tabela['lucro'].sum():,.2f}</div>
+        <div style="min-width:80px; color:{roi_cor};">{roi_total_str}</div>
+        <div style="min-width:120px; color:#0f172a;">R$ {df_tabela['faturamento'].sum():,.2f}</div>
+        <div style="min-width:110px; color:#0f172a;">R$ {ticket_medio_geral:,.2f}</div>
+        <div style="min-width:70px; color:#0f172a;">{int(df_tabela['total_vendas'].sum())}</div>
+        <div style="min-width:70px; color:#0f172a;">{int(df_tabela['vendas_diretas'].sum())}</div>
+        <div style="min-width:80px; color:#0f172a;">{int(df_tabela['vendas_indiretas'].sum())}</div>
+        <div style="min-width:60px; color:#0f172a;">{int(df_tabela['qtd_itens'].sum())}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.divider()
 
