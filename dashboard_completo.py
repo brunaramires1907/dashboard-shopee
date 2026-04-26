@@ -1084,101 +1084,69 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     # 6. ANÁLISE VISUAL (ÚLTIMO)
     # =========================
     titulo("📈", "Análise Visual", cor="#10b981")
-    tab1, tab2 = st.tabs(["ROI por Campanha", "📅 Faturamento por Dia"])
 
-    with tab1:
-        df_sorted = df[df["subid"] != ""].sort_values("roi", ascending=False).head(20)
-        if df_sorted.empty:
-            st.info("Nenhum dado disponível para exibir.")
+    if not df_shopee_filtrado.empty and "_data" in df_shopee_filtrado.columns:
+        subids_disponiveis = ["Todos"] + sorted(df_shopee_filtrado["subid"].dropna().unique().tolist())
+        subid_sel = st.selectbox("Filtrar por SubID:", subids_disponiveis, key="fat_dia_subid")
+        raw_filtrado = df_shopee_filtrado if subid_sel == "Todos" else df_shopee_filtrado[df_shopee_filtrado["subid"] == subid_sel]
+
+        fat_dia = raw_filtrado.groupby("_data", as_index=False).agg(
+            faturamento=("_valor", "sum"),
+            comissao=("_comissao", "sum"),
+            vendas=("_qtd", "sum"),
+            diretas=("_direta", "sum"),
+            indiretas=("_indireta", "sum")
+        ).sort_values("_data")
+
+        fat_dia["_data"] = pd.to_datetime(fat_dia["_data"]).dt.strftime("%d/%m/%Y")
+
+        if subid_sel == "Todos":
+            gasto_subid = df["gasto"].sum()
         else:
-            fig_roi = px.bar(
-                df_sorted, x="subid", y="roi",
-                color="roi",
-                color_continuous_scale=["#f87171", "#fbbf24", "#4ade80"],
-                labels={"roi": "ROI", "subid": "Campanha"},
-                title="ROI por SubID (Top 20)"
-            )
-            fig_roi.add_hline(y=roi_minimo, line_dash="dash", line_color="#6366f1",
-                              annotation_text=f"Meta ROI: {roi_minimo:.0%}", annotation_position="top right")
-            fig_roi.update_layout(
-                paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
-                font_color="#1e293b", coloraxis_showscale=False, font_family="Inter"
-            )
-            fig_roi.update_yaxes(tickformat=".0%")
-            st.plotly_chart(fig_roi, use_container_width=True)
+            gasto_row = df[df["subid"] == subid_sel]
+            gasto_subid = gasto_row["gasto"].values[0] if not gasto_row.empty else 0.0
 
-    with tab2:
-        if not df_shopee_filtrado.empty and "_data" in df_shopee_filtrado.columns:
-            subids_disponiveis = ["Todos"] + sorted(df_shopee_filtrado["subid"].dropna().unique().tolist())
-            subid_sel = st.selectbox("Filtrar por SubID:", subids_disponiveis, key="fat_dia_subid")
-            raw_filtrado = df_shopee_filtrado if subid_sel == "Todos" else df_shopee_filtrado[df_shopee_filtrado["subid"] == subid_sel]
-
-            fat_dia = raw_filtrado.groupby("_data", as_index=False).agg(
-                faturamento=("_valor", "sum"),
-                comissao=("_comissao", "sum"),
-                vendas=("_qtd", "sum"),
-                diretas=("_direta", "sum"),
-                indiretas=("_indireta", "sum")
-            ).sort_values("_data")
-
-            # Formata data corretamente
-            fat_dia["_data"] = pd.to_datetime(fat_dia["_data"]).dt.strftime("%d/%m/%Y")
-
-            # Adicionar gasto do df principal (por SubID selecionado)
-            if subid_sel == "Todos":
-                gasto_subid = df["gasto"].sum()
-            else:
-                gasto_row = df[df["subid"] == subid_sel]
-                gasto_subid = gasto_row["gasto"].values[0] if not gasto_row.empty else 0.0
-
-            # Distribui o gasto proporcionalmente por dia (pelo faturamento)
-            fat_total = fat_dia["faturamento"].sum()
-            if fat_total > 0:
-                fat_dia["gasto"] = fat_dia["faturamento"] / fat_total * gasto_subid
-            else:
-                fat_dia["gasto"] = 0.0
-            fat_dia["lucro"] = fat_dia["comissao"] - fat_dia["gasto"]
-
-            fig_dia = go.Figure()
-            fig_dia.add_trace(go.Bar(x=fat_dia["_data"], y=fat_dia["faturamento"], name="Faturamento", marker_color="#6366f1"))
-            fig_dia.add_trace(go.Bar(x=fat_dia["_data"], y=fat_dia["comissao"],    name="Comissão",    marker_color="#8b5cf6"))
-            fig_dia.add_trace(go.Bar(x=fat_dia["_data"], y=fat_dia["gasto"],       name="Gasto",       marker_color="#f87171"))
-            fig_dia.update_layout(
-                barmode="group", title="Faturamento, Comissão e Gasto por Dia",
-                paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
-                font_color="#1e293b", font_family="Inter", xaxis_title="Data", yaxis_title="R$"
-            )
-            st.plotly_chart(fig_dia, use_container_width=True)
-
-            fat_dia_display = fat_dia.copy()
-
-            # Linha de totais
-            totais = {
-                "_data":       "TOTAL",
-                "faturamento": fat_dia["faturamento"].sum(),
-                "comissao":    fat_dia["comissao"].sum(),
-                "gasto":       fat_dia["gasto"].sum(),
-                "lucro":       fat_dia["lucro"].sum(),
-                "vendas":      fat_dia["vendas"].sum(),
-                "diretas":     fat_dia["diretas"].sum(),
-                "indiretas":   fat_dia["indiretas"].sum(),
-            }
-            fat_dia_display = pd.concat([fat_dia_display, pd.DataFrame([totais])], ignore_index=True)
-
-            # Formata colunas monetárias
-            for col in ["faturamento", "comissao", "gasto", "lucro"]:
-                fat_dia_display[col] = fat_dia_display[col].apply(lambda x: f"R$ {float(x):,.2f}" if str(x) != "**TOTAL**" else x)
-            for col in ["vendas", "diretas", "indiretas"]:
-                fat_dia_display[col] = fat_dia_display[col].apply(lambda x: int(float(x)))
-
-            fat_dia_display = fat_dia_display[["_data", "faturamento", "comissao", "gasto", "lucro", "vendas", "diretas", "indiretas"]]
-            fat_dia_display.columns = ["Data", "Faturamento", "Comissão", "Gasto", "Lucro", "Qtd Vendas", "Diretas", "Indiretas"]
-
-            if gasto_subid == 0:
-                st.caption("ℹ️ Gasto zerado — importe o arquivo de ads para ver o gasto por dia.")
-            st.dataframe(fat_dia_display, use_container_width=True, hide_index=True)
+        fat_total = fat_dia["faturamento"].sum()
+        if fat_total > 0:
+            fat_dia["gasto"] = fat_dia["faturamento"] / fat_total * gasto_subid
         else:
-            st.info("Carregue os arquivos de comissão da Shopee para ver o faturamento por dia.")
+            fat_dia["gasto"] = 0.0
+        fat_dia["lucro"] = fat_dia["comissao"] - fat_dia["gasto"]
+
+        fig_dia = go.Figure()
+        fig_dia.add_trace(go.Bar(x=fat_dia["_data"], y=fat_dia["faturamento"], name="Faturamento", marker_color="#6366f1"))
+        fig_dia.add_trace(go.Bar(x=fat_dia["_data"], y=fat_dia["comissao"],    name="Comissão",    marker_color="#8b5cf6"))
+        fig_dia.add_trace(go.Bar(x=fat_dia["_data"], y=fat_dia["gasto"],       name="Gasto",       marker_color="#f87171"))
+        fig_dia.update_layout(
+            barmode="group", title="Faturamento, Comissão e Gasto por Dia",
+            paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
+            font_color="#1e293b", font_family="Inter", xaxis_title="Data", yaxis_title="R$"
+        )
+        st.plotly_chart(fig_dia, use_container_width=True)
+
+        fat_dia_display = fat_dia.copy()
+        totais = {
+            "_data": "TOTAL",
+            "faturamento": fat_dia["faturamento"].sum(),
+            "comissao":    fat_dia["comissao"].sum(),
+            "gasto":       fat_dia["gasto"].sum(),
+            "lucro":       fat_dia["lucro"].sum(),
+            "vendas":      fat_dia["vendas"].sum(),
+            "diretas":     fat_dia["diretas"].sum(),
+            "indiretas":   fat_dia["indiretas"].sum(),
+        }
+        fat_dia_display = pd.concat([fat_dia_display, pd.DataFrame([totais])], ignore_index=True)
+        for col in ["faturamento", "comissao", "gasto", "lucro"]:
+            fat_dia_display[col] = fat_dia_display[col].apply(lambda x: f"R$ {float(x):,.2f}")
+        for col in ["vendas", "diretas", "indiretas"]:
+            fat_dia_display[col] = fat_dia_display[col].apply(lambda x: int(float(x)))
+        fat_dia_display = fat_dia_display[["_data", "faturamento", "comissao", "gasto", "lucro", "vendas", "diretas", "indiretas"]]
+        fat_dia_display.columns = ["Data", "Faturamento", "Comissão", "Gasto", "Lucro", "Qtd Vendas", "Diretas", "Indiretas"]
+        if gasto_subid == 0:
+            st.caption("ℹ️ Gasto zerado — importe o arquivo de ads para ver o gasto por dia.")
+        st.dataframe(fat_dia_display, use_container_width=True, hide_index=True)
+    else:
+        st.info("Carregue os arquivos de comissão da Shopee para ver o faturamento por dia.")
 
     # =========================
     # DOWNLOADS
