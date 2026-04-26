@@ -498,18 +498,14 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
     else:
         vendas = pd.DataFrame(columns=["subid", "comissoes", "faturamento", "vendas_diretas", "vendas_indiretas", "qtd_itens"])
 
-    # Filtra ads — NÃO filtra por subids_sel pois SubIDs do Meta podem não existir na Shopee
+    # Ads: nunca filtrar por subids_sel aqui — SubIDs do Pinterest/Meta podem não existir na Shopee
+    # O filtro correto é feito após o merge
     if not df_ads_raw.empty:
         df_ads_raw["_data"] = pd.to_datetime(df_ads_raw["_data"], errors="coerce")
         ads_filtrado = df_ads_raw.groupby("subid", as_index=False).agg(
             gasto=("gasto", "sum"),
             cliques_anuncio=("cliques_anuncio", "sum")
         )
-        # Se todos SubIDs estão selecionados, mostra tudo incluindo ads sem Shopee
-        # Se filtrou SubID específico, aplica o filtro
-        todos_subids = sorted(df_shopee_raw["subid"].dropna().unique().tolist())
-        if set(subids_sel) != set(todos_subids):
-            ads_filtrado = ads_filtrado[ads_filtrado["subid"].isin(subids_sel)]
     else:
         ads_filtrado = ads.copy()
 
@@ -575,16 +571,13 @@ if not df_shopee_raw.empty:
     todos_subids = sorted(df_shopee_raw["subid"].dropna().unique().tolist())
     filtro_ativo = set(subids_sel) != set(todos_subids)
     if filtro_ativo:
-        # Filtro ativo: mostra SubIDs selecionados + SubIDs de ads selecionados sem Shopee
-        subids_ads = set(ads_filtrado["subid"].unique()) if not ads_filtrado.empty else set()
-        subids_mostrar = set(subids_sel) | (subids_ads - set(todos_subids))
-        df = df[df["subid"].isin(subids_mostrar)]
+        # Filtro ativo: mostra SubIDs selecionados + qualquer SubID com gasto
+        df = df[df["subid"].isin(subids_sel) | (df["gasto"] > 0)]
     else:
-        # Sem filtro: remove apenas linhas com ZERO em tudo
+        # Sem filtro: remove apenas linhas com TUDO zero
         df = df[~((df["gasto"] == 0) & (df["comissoes"] == 0) &
                   (df["cliques_anuncio"] == 0) & (df["cliques_shopee"] == 0))]
 else:
-    # Sem Shopee: mostra apenas o que tem gasto
     df = df[df["gasto"] > 0]
 df["imposto_total"] = (df["gasto"] * imposto_meta / 100) + (df["comissoes"] * imposto_nf / 100)
 df["lucro"] = df["comissoes"] - df["gasto"] - df["imposto_total"]
