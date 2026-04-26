@@ -571,8 +571,9 @@ if not df_shopee_raw.empty:
         # Filtra apenas SubIDs selecionados (remove zerados que vieram do outer join)
         df = df[df["subid"].isin(subids_sel)]
     else:
-        # Sem filtro: remove linhas completamente zeradas (sem gasto, comissão e cliques)
-        df = df[~((df["gasto"] == 0) & (df["comissoes"] == 0) & (df.get("cliques_shopee", 0) == 0) & (df.get("cliques_anuncio", 0) == 0))]
+        # Sem filtro: remove apenas linhas onde TUDO é zero (sem gasto, sem comissão, sem cliques)
+        # Mantém SubIDs que têm gasto mesmo que não tenham venda na Shopee
+        df = df[~((df["gasto"] == 0) & (df["comissoes"] == 0) & (df["cliques_anuncio"] == 0) & (df["cliques_shopee"] == 0))]
 for col in ["comissoes", "faturamento", "gasto", "vendas_diretas", "vendas_indiretas", "qtd_itens", "cliques_anuncio", "cliques_shopee"]:
     df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 df["imposto_total"] = (df["gasto"] * imposto_meta / 100) + (df["comissoes"] * imposto_nf / 100)
