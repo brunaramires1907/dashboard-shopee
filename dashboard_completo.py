@@ -752,7 +752,8 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
                   "Cliques Anúncio", "Cliques Shopee", "% Bat."]
     df_display = df_display[cols_ordem]
 
-    # Linha de total
+    # Linha de total — sempre na última linha
+    df_sem_total = df_display.copy()
     total_row = {
         "SubID":           "TOTAL",
         "Comissão":        f"R$ {df_tabela['comissoes'].sum():,.2f}",
@@ -769,7 +770,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         "Cliques Shopee":  int(df_tabela["cliques_shopee"].sum()),
         "% Bat.":          "—",
     }
-    df_display = pd.concat([df_display, pd.DataFrame([total_row])], ignore_index=True)
+    df_display = pd.concat([df_sem_total, pd.DataFrame([total_row])], ignore_index=True)
 
     def colorir_tabela(df):
         styles = pd.DataFrame("", index=df.index, columns=df.columns)
