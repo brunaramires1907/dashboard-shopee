@@ -699,7 +699,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         st.markdown(f"""<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 16px; margin-bottom:8px;">
             <span style="color:#16a34a; font-size:0.9rem;">✅ <strong>{qtd_lucro} campanha(s) com lucro</strong> — Lucro total: <strong>R$ {total_lucro_filtro:,.2f}</strong></span>
         </div>""", unsafe_allow_html=True)
-    df_tabela = df_tabela.sort_values(ordenar_por, ascending=False)
+    df_tabela = df_tabela.sort_values(ordenar_por, ascending=False).reset_index(drop=True)
 
     df_display = df_tabela.copy()
     for col in ["comissoes", "faturamento", "gasto", "lucro"]:
