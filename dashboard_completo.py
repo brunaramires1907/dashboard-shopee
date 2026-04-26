@@ -709,7 +709,6 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
     df_display["ticket_medio"]        = df_display["ticket_medio"].apply(lambda x: f"R$ {x:,.2f}" if x > 0 else "—")
     for col in ["total_vendas", "vendas_diretas", "vendas_indiretas", "qtd_itens", "cliques_anuncio", "cliques_shopee"]:
         df_display[col] = df_display[col].astype(int)
-
     # Tendência por texto compacto
     def gerar_spark(subid):
         if df_shopee_filtrado.empty or "_data" not in df_shopee_filtrado.columns:
@@ -752,14 +751,19 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
                   "Cliques Anúncio", "Cliques Shopee", "% Bat."]
     df_display = df_display[cols_ordem]
 
+    total_lucro_tab = df_tabela['lucro'].sum()
+    total_gasto_tab = df_tabela['gasto'].sum()
+    total_roi_tab   = total_lucro_tab / total_gasto_tab if total_gasto_tab > 0 else 0
+    roi_total_str   = f"↑ {total_roi_tab:.0%}" if total_roi_tab > 0 else f"↓ {total_roi_tab:.0%}" if total_roi_tab < 0 else "0%"
+
     # Linha de total — sempre na última linha
     df_sem_total = df_display.copy()
     total_row = {
         "SubID":           "TOTAL",
         "Comissão":        f"R$ {df_tabela['comissoes'].sum():,.2f}",
-        "Gasto":           f"R$ {df_tabela['gasto'].sum():,.2f}",
-        "Lucro":           f"R$ {df_tabela['lucro'].sum():,.2f}",
-        "ROI":             f"{(df_tabela['lucro'].sum()/df_tabela['gasto'].sum()) if df_tabela['gasto'].sum() > 0 else 0:.0%}",
+        "Gasto":           f"R$ {total_gasto_tab:,.2f}",
+        "Lucro":           f"R$ {total_lucro_tab:,.2f}",
+        "ROI":             roi_total_str,
         "Faturamento":     f"R$ {df_tabela['faturamento'].sum():,.2f}",
         "Ticket Médio":    f"R$ {ticket_medio_geral:,.2f}",
         "Vendas":          int(df_tabela["total_vendas"].sum()),
@@ -770,6 +774,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         "Cliques Shopee":  int(df_tabela["cliques_shopee"].sum()),
         "% Bat.":          "—",
     }
+    # Garante que TOTAL fica sempre na última posição
     df_display = pd.concat([df_sem_total, pd.DataFrame([total_row])], ignore_index=True)
 
     def colorir_tabela(df):
