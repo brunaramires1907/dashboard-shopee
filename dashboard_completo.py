@@ -553,6 +553,8 @@ if lista_cliques:
     cliques_shopee = pd.concat(lista_cliques).groupby("subid").size().reset_index(name="cliques_shopee")
 
 # --- MERGE E CÁLCULOS ---
+# Estratégia: fazer merge outer para preservar TODOS os SubIDs
+# depois filtrar de forma inteligente
 df = (
     ads_filtrado
     .merge(vendas,         on="subid", how="outer")
@@ -562,20 +564,28 @@ df["subid"] = df["subid"].fillna("").str.strip()
 df = df.fillna(0)
 df["subid"] = df["subid"].replace(0, "")
 
-# Aplica filtro de SubID no df final — garante que só aparecem SubIDs selecionados
-# Exceção: SubIDs de ads sem correspondência na Shopee aparecem quando todos estão selecionados
+for col in ["comissoes", "faturamento", "gasto", "vendas_diretas", "vendas_indiretas", "qtd_itens", "cliques_anuncio", "cliques_shopee"]:
+    df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+# Filtro final de SubIDs:
+# - Remove linhas onde tudo é zero (não têm nenhuma informação útil)
+# - Quando filtro de SubID está ativo, mantém apenas os selecionados
+# - Quando filtro de SubID está inativo, mostra todos incluindo ads sem Shopee
 if not df_shopee_raw.empty:
     todos_subids = sorted(df_shopee_raw["subid"].dropna().unique().tolist())
     filtro_ativo = set(subids_sel) != set(todos_subids)
     if filtro_ativo:
-        # Filtra apenas SubIDs selecionados (remove zerados que vieram do outer join)
-        df = df[df["subid"].isin(subids_sel)]
+        # Filtro ativo: mostra SubIDs selecionados + SubIDs de ads selecionados sem Shopee
+        subids_ads = set(ads_filtrado["subid"].unique()) if not ads_filtrado.empty else set()
+        subids_mostrar = set(subids_sel) | (subids_ads - set(todos_subids))
+        df = df[df["subid"].isin(subids_mostrar)]
     else:
-        # Sem filtro: remove apenas linhas onde TUDO é zero (sem gasto, sem comissão, sem cliques)
-        # Mantém SubIDs que têm gasto mesmo que não tenham venda na Shopee
-        df = df[~((df["gasto"] == 0) & (df["comissoes"] == 0) & (df["cliques_anuncio"] == 0) & (df["cliques_shopee"] == 0))]
-for col in ["comissoes", "faturamento", "gasto", "vendas_diretas", "vendas_indiretas", "qtd_itens", "cliques_anuncio", "cliques_shopee"]:
-    df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+        # Sem filtro: remove apenas linhas com ZERO em tudo
+        df = df[~((df["gasto"] == 0) & (df["comissoes"] == 0) &
+                  (df["cliques_anuncio"] == 0) & (df["cliques_shopee"] == 0))]
+else:
+    # Sem Shopee: mostra apenas o que tem gasto
+    df = df[df["gasto"] > 0]
 df["imposto_total"] = (df["gasto"] * imposto_meta / 100) + (df["comissoes"] * imposto_nf / 100)
 df["lucro"] = df["comissoes"] - df["gasto"] - df["imposto_total"]
 df["roi"]   = df.apply(lambda x: x["lucro"] / x["gasto"] if x["gasto"] > 0 else 0, axis=1)
