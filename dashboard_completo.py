@@ -214,7 +214,8 @@ def normalizar_coluna(col):
 
 def limpar_subid(valor):
     if pd.isna(valor): return ""
-    return str(valor).replace("-", "").strip()
+    # .lower() garante que PIN04 e pin04 sejam tratados como o mesmo SubID
+    return str(valor).replace("-", "").strip().lower()
 
 def converter_valor(valor):
     if pd.isna(valor): return 0.0
@@ -312,7 +313,8 @@ if meta_files:
 
             col_nome    = next((c for c in meta.columns if "nome_do_anuncio" in c), None)
             col_gasto   = next((c for c in meta.columns if "valor_usado_brl" in c or "valor_usado" in c), None)
-            col_cliques = next((c for c in meta.columns if "resultados" in c), None)
+            col_cliques = next((c for c in meta.columns if "cliques_no_link" in c), None) or \
+                          next((c for c in meta.columns if "resultados" in c), None)
             col_data    = next((c for c in meta.columns if "inicio_dos_relatorios" in c or "inicio" in c), None)
 
             if not col_nome or not col_gasto:
