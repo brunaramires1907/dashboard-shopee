@@ -378,11 +378,14 @@ if shopee_comissao_files:
             faturamento_bruto_total += shp_valido["_valor"].sum()
 
             if col_sub:
-                shp_valido["subid"] = shp_valido[col_sub].apply(limpar_subid)
-                # Se sub_id1 estiver vazio, usa sub_id2
+                # Prioriza o Sub_id2: quando tem valor, usa ele e ignora o Sub_id1.
+                # Só cai para o Sub_id1 como reserva quando o Sub_id2 está vazio.
                 if col_sub2:
-                    sub2 = shp_valido[col_sub2].apply(limpar_subid)
-                    shp_valido["subid"] = shp_valido["subid"].where(shp_valido["subid"] != "", sub2)
+                    shp_valido["subid"] = shp_valido[col_sub2].apply(limpar_subid)
+                    sub1 = shp_valido[col_sub].apply(limpar_subid)
+                    shp_valido["subid"] = shp_valido["subid"].where(shp_valido["subid"] != "", sub1)
+                else:
+                    shp_valido["subid"] = shp_valido[col_sub].apply(limpar_subid)
 
                 # Tipo de venda: direta (mesma loja) ou indireta (loja diferente)
                 if col_atrib:
@@ -579,16 +582,26 @@ for col in ["comissoes", "faturamento", "gasto", "vendas_diretas", "vendas_indir
     df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
 # Filtro final de SubIDs:
-# - Remove linhas onde tudo é zero (não têm nenhuma informação útil)
-# - Quando filtro de SubID está ativo, mantém apenas os selecionados
-# - Quando filtro de SubID está inativo, mostra todos incluindo ads sem Shopee
+# - Remove linhas 100% zeradas (sem nenhuma informação útil)
+# - Com filtro ativo, mantém os selecionados...
+# - ...MAS sempre preserva SubIDs com gasto de anúncio e SEM venda na Shopee no
+#   período. Senão o total de Gasto fica subestimado (bug do pit02/pit10/etc).
+subids_gasto_orfao = set()
 if not df_shopee_raw.empty or not df_ads_raw.empty:
     filtro_ativo = set(subids_sel) != set(subids_todos)
+
+    # Gasto real, porém sem comissão e sem faturamento no período filtrado:
+    # Pinterest/Meta que não converteram na Shopee. NÃO podem sumir da tabela.
+    subids_gasto_orfao = set(
+        df.loc[(df["gasto"] > 0) & (df["comissoes"] == 0) & (df["faturamento"] == 0), "subid"]
+    )
+
     if filtro_ativo:
-        df = df[df["subid"].isin(subids_sel)]
-    else:
-        df = df[~((df["gasto"] == 0) & (df["comissoes"] == 0) &
-                  (df["cliques_anuncio"] == 0) & (df["cliques_shopee"] == 0))]
+        df = df[df["subid"].isin(subids_sel) | df["subid"].isin(subids_gasto_orfao)]
+
+    # Limpeza de linhas 100% vazias roda nos DOIS casos (com ou sem filtro)
+    df = df[~((df["gasto"] == 0) & (df["comissoes"] == 0) &
+              (df["cliques_anuncio"] == 0) & (df["cliques_shopee"] == 0))]
 else:
     df = df[df["gasto"] > 0]
 df["imposto_total"] = (df["gasto"] * imposto_meta / 100) + (df["comissoes"] * imposto_nf / 100)
@@ -982,9 +995,13 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         # Gasto por dia dos ads
         if not df_ads_raw.empty and "_data" in df_ads_raw.columns:
             gasto_dia = df_ads_raw.copy()
-            # Filtra por SubID selecionado para que o gasto corresponda ao filtro aplicado
+            # Mantém o gasto dos SubIDs selecionados E dos órfãos (gasto sem venda),
+            # pra o investimento diário bater com o total do topo.
             if subids_sel:
-                gasto_dia = gasto_dia[gasto_dia["subid"].isin(subids_sel)]
+                gasto_dia = gasto_dia[
+                    gasto_dia["subid"].isin(subids_sel) |
+                    gasto_dia["subid"].isin(subids_gasto_orfao)
+                ]
             gasto_dia["_data"] = pd.to_datetime(gasto_dia["_data"]).dt.date
             gasto_dia_agg = gasto_dia.groupby("_data", as_index=False).agg(invest=("gasto", "sum"))
             fat_dia_agg = fat_dia_agg.merge(gasto_dia_agg, on="_data", how="left").fillna(0)
