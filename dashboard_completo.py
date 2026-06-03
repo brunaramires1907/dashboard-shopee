@@ -226,30 +226,37 @@ def converter_valor(valor):
     try: return float(valor)
     except: return 0.0
 
-def ler_csv_inteligente(file):
-    file.seek(0)
+# -------------------------------------------------------------------
+# LEITURA COM CACHE
+# As funções agora recebem os BYTES do arquivo (file.getvalue()) em vez
+# do objeto de upload. Isso permite que o Streamlit guarde o resultado
+# em cache e NÃO releia/reprocesse os arquivos a cada interação na tela,
+# que era a principal causa do estouro de memória.
+# -------------------------------------------------------------------
+
+@st.cache_data(show_spinner=False, max_entries=20)
+def ler_csv_inteligente(file_bytes):
     for enc in ["utf-8-sig", "utf-8", "latin-1"]:
         for sep in [",", ";"]:
             try:
-                file.seek(0)
-                df = pd.read_csv(file, sep=sep, encoding=enc, engine="python")
+                df = pd.read_csv(BytesIO(file_bytes), sep=sep, encoding=enc)
                 if len(df.columns) > 1:
                     return df
-            except:
+            except Exception:
                 continue
-    file.seek(0)
-    return pd.read_csv(file, sep=",", encoding="latin-1", engine="python")
+    return pd.read_csv(BytesIO(file_bytes), sep=",", encoding="latin-1", engine="python")
 
-def ler_excel(file):
-    file.seek(0)
-    return pd.read_excel(file, engine="openpyxl")
+@st.cache_data(show_spinner=False, max_entries=20)
+def ler_excel(file_bytes):
+    return pd.read_excel(BytesIO(file_bytes), engine="openpyxl")
 
+@st.cache_data(show_spinner=False, max_entries=10)
 def gerar_excel(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Dashboard")
     output.seek(0)
-    return output
+    return output.getvalue()
 
 def formatar_valor(v):
     return f"R$ {v:,.2f}"
@@ -282,7 +289,7 @@ lista_ads_raw = []  # raw com data por dia
 if pinterest_files:
     for f in pinterest_files:
         try:
-            dfp = ler_csv_inteligente(f)
+            dfp = ler_csv_inteligente(f.getvalue())
             dfp.columns = [normalizar_coluna(c) for c in dfp.columns]
 
             # Colunas do Pinterest com data
@@ -307,7 +314,7 @@ if pinterest_files:
 if meta_files:
     for f in meta_files:
         try:
-            meta = ler_excel(f)
+            meta = ler_excel(f.getvalue())
             meta.columns = [normalizar_coluna(c) for c in meta.columns]
 
             col_nome    = next((c for c in meta.columns if "nome_do_anuncio" in c), None)
@@ -342,7 +349,7 @@ lista_shopee_raw = []
 if shopee_comissao_files:
     for f in shopee_comissao_files:
         try:
-            shp = ler_csv_inteligente(f)
+            shp = ler_csv_inteligente(f.getvalue())
             shp.columns = [normalizar_coluna(c) for c in shp.columns]
 
             col_valor     = next((c for c in shp.columns if "valor_de_compra" in c), None)
@@ -558,7 +565,7 @@ lista_cliques = []
 if shopee_cliques_files:
     for f in shopee_cliques_files:
         try:
-            clk = ler_csv_inteligente(f)
+            clk = ler_csv_inteligente(f.getvalue())
             clk.columns = [normalizar_coluna(c) for c in clk.columns]
             sub = next((c for c in clk.columns if "sub" in c), None)
             if sub:
