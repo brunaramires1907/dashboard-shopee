@@ -214,6 +214,7 @@ def normalizar_coluna(col):
 
 def limpar_subid(valor):
     if pd.isna(valor): return ""
+    # .lower() garante que PIN04 e pin04 sejam tratados como o mesmo SubID
     return str(valor).replace("-", "").strip().lower()
 
 def converter_valor(valor):
@@ -312,7 +313,8 @@ if meta_files:
 
             col_nome    = next((c for c in meta.columns if "nome_do_anuncio" in c), None)
             col_gasto   = next((c for c in meta.columns if "valor_usado_brl" in c or "valor_usado" in c), None)
-            col_cliques = next((c for c in meta.columns if "resultados" in c), None)
+            col_cliques = next((c for c in meta.columns if "cliques_no_link" in c), None) or \
+                          next((c for c in meta.columns if "resultados" in c), None)
             col_data    = next((c for c in meta.columns if "inicio_dos_relatorios" in c or "inicio" in c), None)
 
             if not col_nome or not col_gasto:
@@ -352,7 +354,6 @@ if shopee_comissao_files:
                             next((c for c in shp.columns if "comissao_total_do_item" in c), None) or \
                             next((c for c in shp.columns if "comissao_total" in c), shp.columns[-1])
             col_sub       = next((c for c in shp.columns if "sub_id1" in c), None)
-            col_sub2      = next((c for c in shp.columns if "sub_id2" in c), None)
             col_atrib     = next((c for c in shp.columns if "tipo_de_atribuicao" in c or "atribuicao" in c), None)
             col_data      = next((c for c in shp.columns if "horario_do_pedido" in c or "data_do_pedido" in c), None)
             col_qtd       = next((c for c in shp.columns if "qtd" in c), None)
@@ -378,14 +379,7 @@ if shopee_comissao_files:
             faturamento_bruto_total += shp_valido["_valor"].sum()
 
             if col_sub:
-                # Prioriza o Sub_id2: quando tem valor, usa ele e ignora o Sub_id1.
-                # Só cai para o Sub_id1 como reserva quando o Sub_id2 está vazio.
-                if col_sub2:
-                    shp_valido["subid"] = shp_valido[col_sub2].apply(limpar_subid)
-                    sub1 = shp_valido[col_sub].apply(limpar_subid)
-                    shp_valido["subid"] = shp_valido["subid"].where(shp_valido["subid"] != "", sub1)
-                else:
-                    shp_valido["subid"] = shp_valido[col_sub].apply(limpar_subid)
+                shp_valido["subid"] = shp_valido[col_sub].apply(limpar_subid)
 
                 # Tipo de venda: direta (mesma loja) ou indireta (loja diferente)
                 if col_atrib:
@@ -582,26 +576,16 @@ for col in ["comissoes", "faturamento", "gasto", "vendas_diretas", "vendas_indir
     df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
 # Filtro final de SubIDs:
-# - Remove linhas 100% zeradas (sem nenhuma informação útil)
-# - Com filtro ativo, mantém os selecionados...
-# - ...MAS sempre preserva SubIDs com gasto de anúncio e SEM venda na Shopee no
-#   período. Senão o total de Gasto fica subestimado (bug do pit02/pit10/etc).
-subids_gasto_orfao = set()
+# - Remove linhas onde tudo é zero (não têm nenhuma informação útil)
+# - Quando filtro de SubID está ativo, mantém apenas os selecionados
+# - Quando filtro de SubID está inativo, mostra todos incluindo ads sem Shopee
 if not df_shopee_raw.empty or not df_ads_raw.empty:
     filtro_ativo = set(subids_sel) != set(subids_todos)
-
-    # Gasto real, porém sem comissão e sem faturamento no período filtrado:
-    # Pinterest/Meta que não converteram na Shopee. NÃO podem sumir da tabela.
-    subids_gasto_orfao = set(
-        df.loc[(df["gasto"] > 0) & (df["comissoes"] == 0) & (df["faturamento"] == 0), "subid"]
-    )
-
     if filtro_ativo:
-        df = df[df["subid"].isin(subids_sel) | df["subid"].isin(subids_gasto_orfao)]
-
-    # Limpeza de linhas 100% vazias roda nos DOIS casos (com ou sem filtro)
-    df = df[~((df["gasto"] == 0) & (df["comissoes"] == 0) &
-              (df["cliques_anuncio"] == 0) & (df["cliques_shopee"] == 0))]
+        df = df[df["subid"].isin(subids_sel)]
+    else:
+        df = df[~((df["gasto"] == 0) & (df["comissoes"] == 0) &
+                  (df["cliques_anuncio"] == 0) & (df["cliques_shopee"] == 0))]
 else:
     df = df[df["gasto"] > 0]
 df["imposto_total"] = (df["gasto"] * imposto_meta / 100) + (df["comissoes"] * imposto_nf / 100)
@@ -995,13 +979,9 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         # Gasto por dia dos ads
         if not df_ads_raw.empty and "_data" in df_ads_raw.columns:
             gasto_dia = df_ads_raw.copy()
-            # Mantém o gasto dos SubIDs selecionados E dos órfãos (gasto sem venda),
-            # pra o investimento diário bater com o total do topo.
+            # Filtra por SubID selecionado para que o gasto corresponda ao filtro aplicado
             if subids_sel:
-                gasto_dia = gasto_dia[
-                    gasto_dia["subid"].isin(subids_sel) |
-                    gasto_dia["subid"].isin(subids_gasto_orfao)
-                ]
+                gasto_dia = gasto_dia[gasto_dia["subid"].isin(subids_sel)]
             gasto_dia["_data"] = pd.to_datetime(gasto_dia["_data"]).dt.date
             gasto_dia_agg = gasto_dia.groupby("_data", as_index=False).agg(invest=("gasto", "sum"))
             fat_dia_agg = fat_dia_agg.merge(gasto_dia_agg, on="_data", how="left").fillna(0)
@@ -1016,72 +996,6 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         total_invest   = fat_dia_agg["invest"].sum()
         total_comissao_dia = fat_dia_agg["comissao"].sum()
         total_lucro    = fat_dia_agg["lucro"].sum()
-        media_diaria   = total_faturado / max(len(fat_dia_agg), 1)
-        projecao_mes   = media_diaria * ultimo_dia_mes
-        necessario_dia = max((meta_mensal - total_faturado) / max(dias_restantes, 1), 0)
-
-        # Cards do topo
-        pc1, pc2, pc3, pc4, pc5 = st.columns(5)
-        pc1.metric("📦 Faturado", f"R$ {total_faturado:,.2f}")
-        pc2.metric("📉 Invest Total", f"R$ {total_invest:,.2f}")
-        pc3.metric("📈 Lucro Acumulado", f"R$ {total_lucro:,.2f}")
-        pc4.metric("📆 Dias Restantes", f"{dias_restantes}")
-        pc5.metric("⚡ Necessário/dia", f"R$ {necessario_dia:,.2f}", help="Para bater a meta mensal")
-
-        # Projeção
-        st.markdown(f"""
-        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px 20px; margin:12px 0; display:flex; gap:0;">
-            <div style="flex:1; text-align:center; border-right:1px solid #e2e8f0; padding:0 16px;">
-                <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px;">Meta do mês</div>
-                <div style="font-size:16px; font-weight:700; color:#6366f1;">R$ {meta_mensal:,.2f}</div>
-            </div>
-            <div style="flex:1; text-align:center; border-right:1px solid #e2e8f0; padding:0 16px;">
-                <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px;">Projeção (ritmo atual)</div>
-                <div style="font-size:16px; font-weight:700; color:#d97706;">R$ {projecao_mes:,.2f}</div>
-            </div>
-            <div style="flex:1; text-align:center; border-right:1px solid #e2e8f0; padding:0 16px;">
-                <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px;">% da meta atingida</div>
-                <div style="font-size:16px; font-weight:700; color:#16a34a;">{min(total_faturado/meta_mensal*100, 100):.1f}%</div>
-            </div>
-            <div style="flex:1; text-align:center; padding:0 16px;">
-                <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px;">Média diária</div>
-                <div style="font-size:16px; font-weight:700; color:#0f172a;">R$ {media_diaria:,.2f}</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Bônus (3 faixas baseadas na meta mensal)
-        meta_b1 = meta_mensal * 1.0
-        meta_b2 = meta_mensal * 1.25
-        meta_b3 = meta_mensal * 1.50
-        bon1 = meta_b1 * 0.01
-        bon2 = meta_b2 * 0.02
-        bon3 = meta_b3 * 0.03
-
-        b1, b2, b3 = st.columns(3)
-        with b1:
-            st.markdown(f"""<div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:14px 16px;">
-                <div style="font-size:10px; font-weight:700; color:#1d4ed8; text-transform:uppercase; letter-spacing:0.06em;">Bônus 1% · meta R$ {meta_b1:,.0f}</div>
-                <div style="font-size:11px; color:#3b82f6; margin:4px 0;">Faltam R$ {max(meta_b1-total_faturado,0):,.2f}</div>
-                <div style="font-size:20px; font-weight:800; color:#1d4ed8;">R$ {bon1:,.2f}</div>
-                <div style="font-size:10px; color:#93c5fd; margin-top:3px;">estimativa de bônus</div>
-            </div>""", unsafe_allow_html=True)
-        with b2:
-            st.markdown(f"""<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:14px 16px;">
-                <div style="font-size:10px; font-weight:700; color:#14532d; text-transform:uppercase; letter-spacing:0.06em;">Bônus 2% · meta R$ {meta_b2:,.0f}</div>
-                <div style="font-size:11px; color:#16a34a; margin:4px 0;">Faltam R$ {max(meta_b2-total_faturado,0):,.2f}</div>
-                <div style="font-size:20px; font-weight:800; color:#14532d;">R$ {bon2:,.2f}</div>
-                <div style="font-size:10px; color:#4ade80; margin-top:3px;">estimativa de bônus</div>
-            </div>""", unsafe_allow_html=True)
-        with b3:
-            st.markdown(f"""<div style="background:#fdf4ff; border:1px solid #e9d5ff; border-radius:12px; padding:14px 16px;">
-                <div style="font-size:10px; font-weight:700; color:#6b21a8; text-transform:uppercase; letter-spacing:0.06em;">Bônus 3% · meta R$ {meta_b3:,.0f}</div>
-                <div style="font-size:11px; color:#9333ea; margin:4px 0;">Faltam R$ {max(meta_b3-total_faturado,0):,.2f}</div>
-                <div style="font-size:20px; font-weight:800; color:#6b21a8;">R$ {bon3:,.2f}</div>
-                <div style="font-size:10px; color:#c084fc; margin-top:3px;">estimativa de bônus</div>
-            </div>""", unsafe_allow_html=True)
-
-        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
         # Tabela diária
         df_tabela_dia = fat_dia_agg.copy()
@@ -1131,74 +1045,6 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
 
         st.dataframe(df_exibe.style.apply(colorir_dia, axis=None), use_container_width=True, hide_index=True)
         st.divider()
-
-    # =========================
-    # 6. ANÁLISE VISUAL (ÚLTIMO)
-    # =========================
-    titulo("📈", "Análise Visual", cor="#10b981")
-
-    if not df_shopee_filtrado.empty and "_data" in df_shopee_filtrado.columns:
-        subids_disponiveis = ["Todos"] + sorted(df_shopee_filtrado["subid"].dropna().unique().tolist())
-        subid_sel = st.selectbox("Filtrar por SubID:", subids_disponiveis, key="fat_dia_subid")
-        raw_filtrado = df_shopee_filtrado if subid_sel == "Todos" else df_shopee_filtrado[df_shopee_filtrado["subid"] == subid_sel]
-
-        fat_dia = raw_filtrado.groupby("_data", as_index=False).agg(
-            faturamento=("_valor", "sum"),
-            comissao=("_comissao", "sum"),
-            vendas=("_qtd", "sum"),
-            diretas=("_direta", "sum"),
-            indiretas=("_indireta", "sum")
-        ).sort_values("_data")
-
-        fat_dia["_data"] = pd.to_datetime(fat_dia["_data"]).dt.strftime("%d/%m/%Y")
-
-        if subid_sel == "Todos":
-            gasto_subid = df["gasto"].sum()
-        else:
-            gasto_row = df[df["subid"] == subid_sel]
-            gasto_subid = gasto_row["gasto"].values[0] if not gasto_row.empty else 0.0
-
-        fat_total = fat_dia["faturamento"].sum()
-        if fat_total > 0:
-            fat_dia["gasto"] = fat_dia["faturamento"] / fat_total * gasto_subid
-        else:
-            fat_dia["gasto"] = 0.0
-        fat_dia["lucro"] = fat_dia["comissao"] - fat_dia["gasto"]
-
-        fig_dia = go.Figure()
-        fig_dia.add_trace(go.Bar(x=fat_dia["_data"], y=fat_dia["faturamento"], name="Faturamento", marker_color="#6366f1"))
-        fig_dia.add_trace(go.Bar(x=fat_dia["_data"], y=fat_dia["comissao"],    name="Comissão",    marker_color="#8b5cf6"))
-        fig_dia.add_trace(go.Bar(x=fat_dia["_data"], y=fat_dia["gasto"],       name="Gasto",       marker_color="#f87171"))
-        fig_dia.update_layout(
-            barmode="group", title="Faturamento, Comissão e Gasto por Dia",
-            paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc",
-            font_color="#1e293b", font_family="Inter", xaxis_title="Data", yaxis_title="R$"
-        )
-        st.plotly_chart(fig_dia, use_container_width=True)
-
-        fat_dia_display = fat_dia.copy()
-        totais = {
-            "_data": "TOTAL",
-            "faturamento": fat_dia["faturamento"].sum(),
-            "comissao":    fat_dia["comissao"].sum(),
-            "gasto":       fat_dia["gasto"].sum(),
-            "lucro":       fat_dia["lucro"].sum(),
-            "vendas":      fat_dia["vendas"].sum(),
-            "diretas":     fat_dia["diretas"].sum(),
-            "indiretas":   fat_dia["indiretas"].sum(),
-        }
-        fat_dia_display = pd.concat([fat_dia_display, pd.DataFrame([totais])], ignore_index=True)
-        for col in ["faturamento", "comissao", "gasto", "lucro"]:
-            fat_dia_display[col] = fat_dia_display[col].apply(lambda x: f"R$ {float(x):,.2f}")
-        for col in ["vendas", "diretas", "indiretas"]:
-            fat_dia_display[col] = fat_dia_display[col].apply(lambda x: int(float(x)))
-        fat_dia_display = fat_dia_display[["_data", "faturamento", "comissao", "gasto", "lucro", "vendas", "diretas", "indiretas"]]
-        fat_dia_display.columns = ["Data", "Faturamento", "Comissão", "Gasto", "Lucro", "Qtd Vendas", "Diretas", "Indiretas"]
-        if gasto_subid == 0:
-            st.caption("ℹ️ Gasto zerado — importe o arquivo de ads para ver o gasto por dia.")
-        st.dataframe(fat_dia_display, use_container_width=True, hide_index=True)
-    else:
-        st.info("Carregue os arquivos de comissão da Shopee para ver o faturamento por dia.")
 
     # =========================
     # DOWNLOADS
