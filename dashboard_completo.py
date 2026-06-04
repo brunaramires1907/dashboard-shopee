@@ -873,7 +873,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         df_td["faturado"] = df_td["faturado"].apply(lambda x: f"R$ {x:,.2f}")
         df_td["lucro_str"]= fat_dia_agg["lucro"].apply(lambda x: f"R$ {x:,.2f}")
         df_td["roi_str"]  = fat_dia_agg.apply(lambda x: f"{(x['lucro']/x['invest']*100):.0f}%" if x['invest'] > 0 else "—", axis=1)
-        df_td["fat_acum"] = df_td["faturado_acum"].apply(lambda x: f"R$ {float(str(x).replace('R$','').replace(',','').strip()):,.2f}" if x != 0 else "R$ 0,00")
+        df_td["fat_acum"] = fat_dia_agg["faturado_acum"].apply(lambda x: f"R$ {x:,.2f}")
         df_exibe = df_td[["_data","comissao","invest","lucro_str","roi_str","faturado","fat_acum"]].copy()
         df_exibe.columns = ["Dia", "Comissão", "Gasto", "Lucro", "ROI", "Faturado", "Faturado Acum."]
         roi_total_dia = f"{(total_lucro_dia/total_invest*100):.0f}%" if total_invest > 0 else "—"
