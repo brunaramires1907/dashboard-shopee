@@ -4,8 +4,17 @@ import unicodedata
 from io import BytesIO
 from datetime import date
 import gc
+import traceback
 import plotly.express as px
 import plotly.graph_objects as go
+
+# Captura erros globais
+import sys
+_original_excepthook = sys.excepthook
+def _custom_excepthook(exc_type, exc_value, exc_tb):
+    st.error(f"❌ Erro: `{exc_type.__name__}: {exc_value}`")
+    st.code("".join(traceback.format_tb(exc_tb)))
+sys.excepthook = _custom_excepthook
 
 # =========================
 # CONFIGURAÇÃO E DESIGN
