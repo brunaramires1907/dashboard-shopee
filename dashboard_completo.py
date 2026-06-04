@@ -347,21 +347,21 @@ if not df_shopee_raw.empty and "_data" in df_shopee_raw.columns:
     subids_shopee  = df_shopee_raw["subid"].dropna().unique().tolist()
     subids_ads_lst = list(df_ads_raw["subid"].unique()) if not df_ads_raw.empty else []
     subids_todos   = sorted(set(subids_shopee + subids_ads_lst))
-    subids_sel     = st.sidebar.multiselect("", subids_todos, default=subids_todos, label_visibility="collapsed")
+    subids_sel     = st.sidebar.multiselect("SubIDs", subids_todos, default=subids_todos, label_visibility="collapsed")
     if not subids_sel:
         subids_sel = subids_todos
 
     canais_disponiveis = sorted(df_shopee_raw["_canal"].dropna().unique().tolist()) if "_canal" in df_shopee_raw.columns else []
     if canais_disponiveis:
         st.sidebar.markdown("<span style='font-size:0.8rem; color:#64748b;'>📡 Canal</span>", unsafe_allow_html=True)
-        canais_sel = st.sidebar.multiselect("", canais_disponiveis, default=canais_disponiveis, label_visibility="collapsed")
+        canais_sel = st.sidebar.multiselect("Canais", canais_disponiveis, default=canais_disponiveis, label_visibility="collapsed")
         if not canais_sel:
             canais_sel = canais_disponiveis
     else:
         canais_sel = []
 
     st.sidebar.markdown("<span style='font-size:0.8rem; color:#64748b;'>🔀 Tipo de venda</span>", unsafe_allow_html=True)
-    tipo_venda = st.sidebar.radio("", ["Todas", "Somente Diretas", "Somente Indiretas"], horizontal=True, label_visibility="collapsed")
+    tipo_venda = st.sidebar.radio("Tipo", ["Todas", "Somente Diretas", "Somente Indiretas"], horizontal=True, label_visibility="collapsed")
 
     st.sidebar.markdown("")
     comparar = st.sidebar.toggle("📊 Comparar dois períodos")
@@ -649,7 +649,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
             except: pass
         return styles
 
-    st.dataframe(df_sem_total.style.apply(colorir_tabela, axis=None), use_container_width=True, hide_index=True)
+    st.dataframe(df_sem_total.style.apply(colorir_tabela, axis=None), width="stretch", hide_index=True)
 
     roi_cor   = "#16a34a" if total_roi_tab >= roi_minimo else "#d97706" if total_roi_tab >= 0 else "#dc2626"
     lucro_cor = "#16a34a" if total_lucro_tab >= 0 else "#dc2626"
@@ -771,7 +771,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         )
         for col in ["Fat A (R$)", "Fat B (R$)", "Com A (R$)", "Com B (R$)"]:
             df_comp[col] = df_comp[col].apply(lambda x: f"R$ {x:,.2f}")
-        st.dataframe(df_comp[["subid","Fat A (R$)","Fat B (R$)","Δ Fat (%)","Com A (R$)","Com B (R$)"]].rename(columns={"subid":"SubID"}), use_container_width=True, hide_index=True)
+        st.dataframe(df_comp[["subid","Fat A (R$)","Fat B (R$)","Δ Fat (%)","Com A (R$)","Com B (R$)"]].rename(columns={"subid":"SubID"}), width="stretch", hide_index=True)
         st.divider()
 
     # =========================
@@ -900,7 +900,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
                 except: pass
             return styles
 
-        st.dataframe(df_exibe.style.apply(colorir_dia, axis=None), use_container_width=True, hide_index=True)
+        st.dataframe(df_exibe.style.apply(colorir_dia, axis=None), width="stretch", hide_index=True)
         st.divider()
 
     # =========================
@@ -927,7 +927,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
         fig_dia.update_layout(barmode="group", title="Faturamento, Comissão e Gasto por Dia",
             paper_bgcolor="#ffffff", plot_bgcolor="#f8fafc", font_color="#1e293b", font_family="Inter",
             xaxis_title="Data", yaxis_title="R$")
-        st.plotly_chart(fig_dia, use_container_width=True)
+        st.plotly_chart(fig_dia, width="stretch")
         totais_vis = {"_data":"TOTAL","faturamento":fat_vis["faturamento"].sum(),"comissao":fat_vis["comissao"].sum(),"gasto":fat_vis["gasto"].sum(),"lucro":fat_vis["lucro"].sum(),"vendas":fat_vis["vendas"].sum(),"diretas":fat_vis["diretas"].sum(),"indiretas":fat_vis["indiretas"].sum()}
         fat_vis_d = pd.concat([fat_vis, pd.DataFrame([totais_vis])], ignore_index=True)
         for col in ["faturamento","comissao","gasto","lucro"]:
@@ -936,7 +936,7 @@ if not df.empty and (total_gasto > 0 or total_comissao > 0):
             fat_vis_d[col] = fat_vis_d[col].apply(lambda x: int(float(x)))
         fat_vis_d = fat_vis_d[["_data","faturamento","comissao","gasto","lucro","vendas","diretas","indiretas"]]
         fat_vis_d.columns = ["Data","Faturamento","Comissão","Gasto","Lucro","Qtd Vendas","Diretas","Indiretas"]
-        st.dataframe(fat_vis_d, use_container_width=True, hide_index=True)
+        st.dataframe(fat_vis_d, width="stretch", hide_index=True)
     else:
         st.info("Carregue os arquivos de comissão da Shopee para ver o faturamento por dia.")
 
