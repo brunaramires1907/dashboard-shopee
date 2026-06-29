@@ -96,10 +96,10 @@ def ler_csv(file_bytes):
     for enc in ["utf-8-sig","utf-8","latin-1"]:
         for sep in [",",";"]:
             try:
-                df = pd.read_csv(BytesIO(file_bytes), sep=sep, encoding=enc)
+                df = pd.read_csv(BytesIO(file_bytes), sep=sep, encoding=enc, low_memory=False)
                 if len(df.columns) > 1: return df
             except: continue
-    return pd.read_csv(BytesIO(file_bytes), sep=",", encoding="latin-1", engine="python")
+    return pd.read_csv(BytesIO(file_bytes), sep=",", encoding="latin-1", engine="python", low_memory=False)
 
 @st.cache_data(show_spinner=False, max_entries=20)
 def ler_excel(file_bytes):
@@ -175,6 +175,15 @@ if shopee_comissao_files:
         try:
             shp = ler_csv(f.getvalue())
             shp.columns = [normalizar_coluna(c) for c in shp.columns]
+            # Descarta colunas desnecessárias para economizar memória
+            colunas_uteis = [c for c in shp.columns if any(k in c for k in [
+                "valor_de_compra","status_do_pedido","notas","status_do_item",
+                "comissao_liquida","comissao_total","sub_id1","sub_id2",
+                "tipo_de_atribuicao","atribuicao","horario_do_pedido",
+                "data_do_pedido","qtd","canal"
+            ])]
+            shp = shp[colunas_uteis].copy()
+            gc.collect()
             col_valor  = next((c for c in shp.columns if "valor_de_compra" in c), None)
             col_status = next((c for c in shp.columns if "status_do_pedido" in c), None)
             col_notas  = next((c for c in shp.columns if "notas" in c or "status_do_item" in c), None)
