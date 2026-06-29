@@ -176,14 +176,14 @@ if shopee_comissao_files:
             shp = ler_csv(f.getvalue())
             shp.columns = [normalizar_coluna(c) for c in shp.columns]
             # Descarta colunas desnecessárias para economizar memória
-            colunas_uteis = [c for c in shp.columns if any(k in c for k in [
-                "valor_de_compra","status_do_pedido","notas","status_do_item",
+            keywords = ["valor_de_compra","status_do_pedido","notas","status_do_item",
                 "comissao_liquida","comissao_total","sub_id1","sub_id2",
                 "tipo_de_atribuicao","atribuicao","horario_do_pedido",
-                "data_do_pedido","qtd","canal"
-            ])]
-            shp = shp[colunas_uteis].copy()
-            gc.collect()
+                "data_do_pedido","qtd","canal"]
+            colunas_uteis = [c for c in shp.columns if any(k in c for k in keywords)]
+            if len(colunas_uteis) >= 3:
+                shp = shp[colunas_uteis].copy()
+                gc.collect()
             col_valor  = next((c for c in shp.columns if "valor_de_compra" in c), None)
             col_status = next((c for c in shp.columns if "status_do_pedido" in c), None)
             col_notas  = next((c for c in shp.columns if "notas" in c or "status_do_item" in c), None)
